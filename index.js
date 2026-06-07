@@ -3,22 +3,15 @@ const hashUserId = require("./hashUser");
 
 require("dotenv").config();
 
-const { Telegraf, Markup } = require("telegraf");
+const { Telegraf } = require("telegraf");
+const {
+  mainKeyboard,
+  cancelKeyboard,
+} = require("./src/keyboards/mainKeyboard");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 const userStates = {};
-
-const mainKeyboard = Markup.keyboard([
-  ["🌙 Начались месячные", "✅ Закончились"],
-  ["✍️ Указать дату начала", "✍️ Указать дату окончания"],
-  ["📅 Мой цикл", "🩺 Симптомы"],
-  ["⚙️ Настройки", "↩️ Отменить последнюю запись"],
-  ["📤 Экспорт данных", "🗑 Удалить мои данные"],
-  ["❓ Помощь"],
-]).resize();
-
-const cancelKeyboard = Markup.keyboard([["❌ Отмена"]]).resize();
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
