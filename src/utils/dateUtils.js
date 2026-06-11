@@ -41,7 +41,12 @@ function getCycleDays(startDate, endDate) {
   return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 }
 
+function isFutureDate(dateString) {
+  return dateString > getToday();
+}
+
 module.exports = {
+  isFutureDate,
   getToday,
   addDays,
   parseDate,

@@ -1,4 +1,5 @@
-const { mainKeyboard, cancelKeyboard } = require("../keyboards/mainKeyboard");
+const { mainKeyboard } = require("../keyboards/mainKeyboard");
+const { getCalendarKeyboard } = require("../keyboards/calendarKeyboard");
 const userStates = require("../states/userStates");
 
 const { getOrCreateUser } = require("../services/userService");
@@ -46,7 +47,40 @@ function registerCycleHandlers(bot) {
 
     return ctx.reply(`Записала начало: ${today} 🌙`);
   });
+  bot.action("calendar_ignore", async (ctx) => {
+    return ctx.answerCbQuery();
+  });
 
+  bot.action(/^calendar_month:(\d{4}):(\d{1,2})$/, async (ctx) => {
+    const year = Number(ctx.match[1]);
+    const month = Number(ctx.match[2]);
+
+    await ctx.answerCbQuery();
+
+    return ctx.editMessageReplyMarkup(
+      getCalendarKeyboard(year, month).reply_markup,
+    );
+  });
+
+  bot.action("calendar_today", async (ctx) => {
+    const today = getToday();
+
+    return handleCalendarDate(ctx, today);
+  });
+
+  bot.action(/^calendar_day:(\d{4}-\d{2}-\d{2})$/, async (ctx) => {
+    const selectedDate = ctx.match[1];
+
+    return handleCalendarDate(ctx, selectedDate);
+  });
+
+  bot.action("calendar_cancel", async (ctx) => {
+    delete userStates[ctx.from.id];
+
+    await ctx.answerCbQuery("Отменено");
+
+    return ctx.editMessageText("Выбор даты отменён.");
+  });
   bot.hears("✅ Закончились", async (ctx) => {
     const user = await getOrCreateUser(ctx.from.id);
 
@@ -84,24 +118,28 @@ function registerCycleHandlers(bot) {
   });
 
   bot.hears("✍️ Указать дату начала", (ctx) => {
+    const today = new Date();
+
     userStates[ctx.from.id] = {
-      action: "manual_start",
+      action: "calendar_start",
     };
 
     return ctx.reply(
-      "Введите дату начала в формате:\n\n2026-06-04\nили\n04.06.2026",
-      cancelKeyboard,
+      "Выберите дату начала:",
+      getCalendarKeyboard(today.getFullYear(), today.getMonth()),
     );
   });
 
   bot.hears("✍️ Указать дату окончания", (ctx) => {
+    const today = new Date();
+
     userStates[ctx.from.id] = {
-      action: "manual_end",
+      action: "calendar_end",
     };
 
     return ctx.reply(
-      "Введите дату окончания в формате:\n\n2026-06-04\nили\n04.06.2026",
-      cancelKeyboard,
+      "Выберите дату окончания:",
+      getCalendarKeyboard(today.getFullYear(), today.getMonth()),
     );
   });
 
@@ -192,6 +230,101 @@ function registerCycleHandlers(bot) {
     delete userStates[ctx.from.id];
     return ctx.reply("Отменено.", mainKeyboard);
   });
+}
+async function handleCalendarDate(ctx, selectedDate) {
+  const state = userStates[ctx.from.id];
+
+  if (!state) {
+    await ctx.answerCbQuery();
+    return ctx.reply("Сначала выберите действие.");
+  }
+
+  const user = await getOrCreateUser(ctx.from.id);
+
+  if (!user) {
+    await ctx.answerCbQuery();
+    return ctx.reply("Не получилось найти профиль.");
+  }
+
+  if (selectedDate > getToday()) {
+    await ctx.answerCbQuery("Нельзя выбрать дату из будущего");
+    return;
+  }
+
+  if (state.action === "calendar_start") {
+    const { data: openedCycle, error: findError } = await getOpenCycle(user.id);
+
+    if (findError) {
+      console.log("Ошибка поиска открытого цикла:", findError);
+      await ctx.answerCbQuery();
+      return ctx.reply("Не получилось проверить текущий цикл.");
+    }
+
+    if (openedCycle) {
+      await ctx.answerCbQuery();
+      return ctx.reply(
+        `Уже есть открытая запись: ${openedCycle.period_start}\n\nСначала закройте или отмените её.`,
+        mainKeyboard,
+      );
+    }
+
+    const { error } = await createCycle(user, selectedDate);
+
+    if (error) {
+      console.log("Ошибка сохранения начала:", error);
+      await ctx.answerCbQuery();
+      return ctx.reply("Не получилось сохранить дату.");
+    }
+
+    delete userStates[ctx.from.id];
+
+    await ctx.answerCbQuery("Дата выбрана");
+    await ctx.editMessageText(`Выбрана дата начала: ${selectedDate}`);
+
+    return ctx.reply(`Записала начало: ${selectedDate} 🌙`, mainKeyboard);
+  }
+
+  if (state.action === "calendar_end") {
+    const { data: cycle, error: findError } = await getOpenCycle(user.id);
+
+    if (findError) {
+      console.log("Ошибка поиска открытого цикла:", findError);
+      await ctx.answerCbQuery();
+      return ctx.reply("Не получилось проверить текущий цикл.");
+    }
+
+    if (!cycle) {
+      delete userStates[ctx.from.id];
+
+      await ctx.answerCbQuery();
+      await ctx.editMessageText("Нет открытого цикла.");
+
+      return ctx.reply("Сначала отметьте начало месячных 🌙", mainKeyboard);
+    }
+
+    if (selectedDate < cycle.period_start) {
+      await ctx.answerCbQuery("Дата раньше начала");
+      return ctx.reply("Дата окончания не может быть раньше даты начала.");
+    }
+
+    const { error } = await closeCycle(cycle.id, selectedDate);
+
+    if (error) {
+      console.log("Ошибка сохранения окончания:", error);
+      await ctx.answerCbQuery();
+      return ctx.reply("Не получилось сохранить дату окончания.");
+    }
+
+    delete userStates[ctx.from.id];
+
+    await ctx.answerCbQuery("Дата выбрана");
+    await ctx.editMessageText(`Выбрана дата окончания: ${selectedDate}`);
+
+    return ctx.reply(`Записала окончание: ${selectedDate} ✅`, mainKeyboard);
+  }
+
+  await ctx.answerCbQuery();
+  return ctx.reply("Не поняла действие.");
 }
 
 module.exports = registerCycleHandlers;

@@ -8,6 +8,7 @@ const {
   isValidDate,
   getCycleDays,
   getToday,
+  isFutureDate,
 } = require("../utils/dateUtils");
 
 const {
@@ -42,6 +43,11 @@ function registerTextHandler(bot) {
       if (!date || !isValidDate(date)) {
         return ctx.reply(
           "Дата не распознана. Пример: 2026-06-04 или 04.06.2026",
+        );
+      }
+      if (isFutureDate(date)) {
+        return ctx.reply(
+          "Нельзя указать дату из будущего. Машину времени пока не добавляли.",
         );
       }
 
@@ -80,6 +86,9 @@ function registerTextHandler(bot) {
         return ctx.reply(
           "Дата не распознана. Пример: 2026-06-04 или 04.06.2026",
         );
+      }
+      if (isFutureDate(date)) {
+        return ctx.reply("Нельзя указать дату окончания из будущего.");
       }
 
       const { data: cycle, error: findError } = await getOpenCycle(user.id);

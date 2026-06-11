@@ -1,14 +1,15 @@
+const { mainKeyboard, settingsKeyboard } = require("../keyboards/mainKeyboard");
+
 function registerSettingsHandlers(bot) {
   bot.hears("⚙️ Настройки", (ctx) => {
     return ctx.reply(
-      "⚙️ Настройки\n\n" +
-        "Напишите:\n\n" +
-        "цикл 28\n" +
-        "месячные 5\n\n" +
-        "Примеры:\n" +
-        "цикл 30\n" +
-        "месячные 6",
+      "⚙️ Настройки\n\nВыберите нужное значение кнопкой:",
+      settingsKeyboard,
     );
+  });
+
+  bot.hears("⬅️ Назад", (ctx) => {
+    return ctx.reply("Главное меню.", mainKeyboard);
   });
 }
 

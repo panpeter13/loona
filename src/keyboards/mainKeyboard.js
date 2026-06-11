@@ -11,7 +11,14 @@ const mainKeyboard = Markup.keyboard([
 
 const cancelKeyboard = Markup.keyboard([["❌ Отмена"]]).resize();
 
+const settingsKeyboard = Markup.keyboard([
+  ["Цикл 21", "Цикл 28", "Цикл 30"],
+  ["Цикл 35", "Месячные 3", "Месячные 5"],
+  ["Месячные 7", "⬅️ Назад"],
+]).resize();
+
 module.exports = {
   mainKeyboard,
   cancelKeyboard,
+  settingsKeyboard,
 };
