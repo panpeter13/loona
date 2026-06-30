@@ -3,10 +3,11 @@ const { Markup } = require("telegraf");
 const mainKeyboard = Markup.keyboard([
   ["🌙 Начались месячные", "✅ Закончились"],
   ["✍️ Указать дату начала", "✍️ Указать дату окончания"],
-  ["📅 Мой цикл", "🩺 Симптомы"],
-  ["⚙️ Настройки", "↩️ Отменить последнюю запись"],
-  ["📤 Экспорт данных", "🗑 Удалить мои данные"],
-  ["❓ Помощь"],
+  ["📅 Мой цикл", "💕 Цикл партнёрши"],
+  ["👤 Режим", "⚙️ Настройки"],
+  ["❓ Помощь", "ℹ️ О LOONA"],
+  ["↩️ Отменить последнюю запись"],
+  ["🗑 Удалить мои данные"],
 ]).resize();
 
 const cancelKeyboard = Markup.keyboard([["❌ Отмена"]]).resize();
@@ -17,8 +18,22 @@ const settingsKeyboard = Markup.keyboard([
   ["Месячные 7", "⬅️ Назад"],
 ]).resize();
 
+const modeKeyboard = Markup.keyboard([
+  ["🌙 Свой цикл"],
+  ["🤝 Партнёр"],
+  ["⬅️ Назад"],
+]).resize();
+
+const aboutKeyboard = Markup.keyboard([
+  ["📢 Новости", "❤️ Поддержать проект"],
+  ["🐞 Сообщить об ошибке", "💡 Предложить идею"],
+  ["⬅️ Назад"],
+]).resize();
+
 module.exports = {
   mainKeyboard,
   cancelKeyboard,
   settingsKeyboard,
+  modeKeyboard,
+  aboutKeyboard,
 };

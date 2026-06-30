@@ -56,6 +56,13 @@ async function reopenCycle(cycleId) {
     })
     .eq("id", cycleId);
 }
+async function getUserCycles(userId) {
+  return await supabase
+    .from("cycles")
+    .select("*")
+    .eq("user_id", userId)
+    .order("period_start", { ascending: true });
+}
 
 module.exports = {
   getLastCycle,
@@ -64,4 +71,5 @@ module.exports = {
   closeCycle,
   deleteCycle,
   reopenCycle,
+  getUserCycles,
 };

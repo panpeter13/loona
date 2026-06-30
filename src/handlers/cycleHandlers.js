@@ -1,7 +1,8 @@
+const supabase = require("../database/supabase");
 const { mainKeyboard } = require("../keyboards/mainKeyboard");
 const { getCalendarKeyboard } = require("../keyboards/calendarKeyboard");
 const userStates = require("../states/userStates");
-
+const { predictCycle } = require("../services/predictionService");
 const { getOrCreateUser } = require("../services/userService");
 
 const {
@@ -11,6 +12,7 @@ const {
   closeCycle,
   deleteCycle,
   reopenCycle,
+  getUserCycles,
 } = require("../services/cycleService");
 
 const { getToday, addDays } = require("../utils/dateUtils");
@@ -150,19 +152,78 @@ function registerCycleHandlers(bot) {
       return ctx.reply("Не получилось найти профиль.");
     }
 
-    const { data: lastCycle, error } = await getLastCycle(user.id);
+    const { data: cycles, error } = await getUserCycles(user.id);
 
     if (error) {
-      console.log("Ошибка получения цикла:", error);
+      console.log("Ошибка получения циклов:", error);
+      return ctx.reply("Не получилось загрузить данные.");
+    }
+
+    if (!cycles || cycles.length === 0) {
+      return ctx.reply("Пока данных нет. Отметьте начало месячных 🌙");
+    }
+
+    const prediction = predictCycle(cycles, user);
+
+    if (!prediction) {
+      return ctx.reply("Не получилось построить прогноз.");
+    }
+
+    return ctx.reply(
+      `📅 Последняя запись\n\n` +
+        `Начало: ${prediction.lastPeriodStart}\n` +
+        `Конец: ${prediction.lastPeriodEnd || "ещё не отмечен"}\n\n` +
+        `Средняя длина цикла: ${prediction.averageCycleLength} дней\n` +
+        `Средняя длительность месячных: ${prediction.averagePeriodLength} дней\n` +
+        `Учтено циклов: ${prediction.cyclesUsed}\n` +
+        `Точность прогноза: ${prediction.confidence}\n\n` +
+        `Следующие месячные примерно:\n${prediction.nextPeriodStart} — ${prediction.nextPeriodEnd}\n\n` +
+        `Овуляция примерно: ${prediction.ovulationDate}\n` +
+        `Фертильное окно примерно:\n${prediction.fertileWindowStart} — ${prediction.fertileWindowEnd}\n\n` +
+        `🩷 LOONA учитывает историю ваших циклов, чтобы постепенно улучшать точность прогноза.`,
+    );
+  });
+  bot.hears("💕 Цикл партнёрши", async (ctx) => {
+    const user = await getOrCreateUser(ctx.from.id);
+
+    if (!user) {
+      return ctx.reply("Не получилось найти профиль.");
+    }
+
+    if (user.mode !== "partner" || !user.linked_user_id) {
+      return ctx.reply(
+        "Вы ещё не подключены как партнёр.\n\nНажмите 👤 Режим → 🤝 Партнёр и введите код партнёрши.",
+        mainKeyboard,
+      );
+    }
+
+    const { data: partnerUser, error: userError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.linked_user_id)
+      .maybeSingle();
+
+    if (userError || !partnerUser) {
+      console.log("Ошибка поиска партнёрши:", userError);
+      return ctx.reply("Не получилось найти данные партнёрши.");
+    }
+
+    const { data: lastCycle, error } = await getLastCycle(partnerUser.id);
+
+    if (error) {
+      console.log("Ошибка получения цикла партнёрши:", error);
       return ctx.reply("Не получилось загрузить данные.");
     }
 
     if (!lastCycle) {
-      return ctx.reply("Пока данных нет. Отметьте начало месячных 🌙");
+      return ctx.reply("Пока у партнёрши нет записей о цикле.");
     }
 
-    const cycleLength = lastCycle.cycle_length || user.cycle_length || 28;
-    const periodLength = lastCycle.period_length || user.period_length || 5;
+    const cycleLength =
+      lastCycle.cycle_length || partnerUser.cycle_length || 28;
+
+    const periodLength =
+      lastCycle.period_length || partnerUser.period_length || 5;
 
     const nextPeriodStart = addDays(lastCycle.period_start, cycleLength);
     const nextPeriodEnd = addDays(nextPeriodStart, periodLength - 1);
@@ -171,15 +232,14 @@ function registerCycleHandlers(bot) {
     const fertileEnd = addDays(ovulationDate, 1);
 
     return ctx.reply(
-      `📅 Последняя запись\n\n` +
+      `💕 Цикл партнёрши\n\n` +
+        `Последняя запись:\n` +
         `Начало: ${lastCycle.period_start}\n` +
         `Конец: ${lastCycle.period_end || "ещё не отмечен"}\n\n` +
-        `Длина цикла: ${cycleLength} дней\n` +
-        `Длительность месячных: ${periodLength} дней\n\n` +
         `Следующие месячные примерно:\n${nextPeriodStart} — ${nextPeriodEnd}\n\n` +
         `Овуляция примерно: ${ovulationDate}\n` +
         `Фертильное окно примерно:\n${fertileStart} — ${fertileEnd}\n\n` +
-        `Это примерный прогноз, не медицинская гарантия. Организм не календарь Google, увы.`,
+        `Это примерный прогноз, не медицинская гарантия.`,
     );
   });
 

@@ -1,13 +1,13 @@
 const supabase = require("../database/supabase");
 
 const { mainKeyboard } = require("../keyboards/mainKeyboard");
+const { saveFeedback } = require("../services/feedbackService");
 const userStates = require("../states/userStates");
 
 const {
   parseDate,
   isValidDate,
   getCycleDays,
-  getToday,
   isFutureDate,
 } = require("../utils/dateUtils");
 
@@ -21,10 +21,7 @@ const {
   getOpenCycle,
   createCycle,
   closeCycle,
-  getLastCycle,
 } = require("../services/cycleService");
-
-const { createSymptom } = require("../services/symptomService");
 
 function registerTextHandler(bot) {
   bot.on("text", async (ctx) => {
@@ -37,6 +34,67 @@ function registerTextHandler(bot) {
       return ctx.reply("Не получилось найти профиль.");
     }
 
+    if (state?.action === "feedback_bug" || state?.action === "feedback_idea") {
+      const type = state.action === "feedback_bug" ? "bug" : "idea";
+
+      const { error } = await saveFeedback(user.id, type, text);
+
+      if (error) {
+        console.log("Ошибка сохранения отзыва:", error);
+        return ctx.reply("Не получилось сохранить сообщение.");
+      }
+
+      delete userStates[ctx.from.id];
+
+      return ctx.reply(
+        "❤️ Спасибо!\n\nВаше сообщение сохранено.",
+        mainKeyboard,
+      );
+    }
+
+    if (state?.action === "enter_partner_code") {
+      const code = text.toUpperCase();
+
+      const { data: femaleUser, error: findError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("partner_code", code)
+        .eq("mode", "female")
+        .maybeSingle();
+
+      if (findError) {
+        console.log("Ошибка поиска кода партнёра:", findError);
+        return ctx.reply("Не получилось проверить код.");
+      }
+
+      if (!femaleUser) {
+        return ctx.reply("Код не найден. Проверьте код и попробуйте ещё раз.");
+      }
+
+      if (femaleUser.id === user.id) {
+        return ctx.reply(
+          "Нельзя подключиться к самому себе. Даже бот осуждает.",
+        );
+      }
+
+      const { error } = await supabase
+        .from("users")
+        .update({
+          mode: "partner",
+          linked_user_id: femaleUser.id,
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        console.log("Ошибка привязки партнёра:", error);
+        return ctx.reply("Не получилось подключиться.");
+      }
+
+      delete userStates[ctx.from.id];
+
+      return ctx.reply("Готово 🤝\n\nВы подключены как партнёр.", mainKeyboard);
+    }
+
     if (state?.action === "manual_start") {
       const date = parseDate(text);
 
@@ -45,6 +103,7 @@ function registerTextHandler(bot) {
           "Дата не распознана. Пример: 2026-06-04 или 04.06.2026",
         );
       }
+
       if (isFutureDate(date)) {
         return ctx.reply(
           "Нельзя указать дату из будущего. Машину времени пока не добавляли.",
@@ -87,6 +146,7 @@ function registerTextHandler(bot) {
           "Дата не распознана. Пример: 2026-06-04 или 04.06.2026",
         );
       }
+
       if (isFutureDate(date)) {
         return ctx.reply("Нельзя указать дату окончания из будущего.");
       }
@@ -132,7 +192,6 @@ function registerTextHandler(bot) {
         return ctx.reply("Для подтверждения нужно написать ровно: УДАЛИТЬ");
       }
 
-      await supabase.from("symptoms").delete().eq("user_id", user.id);
       await supabase.from("cycles").delete().eq("user_id", user.id);
 
       const { error } = await supabase.from("users").delete().eq("id", user.id);
@@ -183,31 +242,6 @@ function registerTextHandler(bot) {
       }
 
       return ctx.reply(`Сохранила длительность месячных: ${value} дней`);
-    }
-
-    const symptomMatch = text.match(/^симптом\s+(.+)\s+([1-5])$/i);
-
-    if (symptomMatch) {
-      const type = symptomMatch[1].trim();
-      const intensity = Number(symptomMatch[2]);
-      const today = getToday();
-
-      const { data: lastCycle } = await getLastCycle(user.id);
-
-      const { error } = await createSymptom({
-        userId: user.id,
-        cycleId: lastCycle?.id || null,
-        date: today,
-        type,
-        intensity,
-      });
-
-      if (error) {
-        console.log("Ошибка сохранения симптома:", error);
-        return ctx.reply("Не получилось сохранить симптом.");
-      }
-
-      return ctx.reply(`Сохранила симптом: ${type}, сила ${intensity}/5 🩺`);
     }
 
     return ctx.reply("Не поняла команду. Нажмите ❓ Помощь.");

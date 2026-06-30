@@ -16,6 +16,25 @@ async function getOrCreateUser(telegramId) {
   }
 
   if (existingUser) {
+    if (!existingUser.telegram_id) {
+      const { data: updatedUser, error: updateError } = await supabase
+        .from("users")
+        .update({
+          telegram_id: telegramId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingUser.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.log("Ошибка обновления telegram_id:", updateError);
+        return existingUser;
+      }
+
+      return updatedUser;
+    }
+
     return existingUser;
   }
 
@@ -23,6 +42,7 @@ async function getOrCreateUser(telegramId) {
     .from("users")
     .insert({
       user_hash: userHash,
+      telegram_id: telegramId,
       language: "ru",
       cycle_length: 28,
       period_length: 5,
