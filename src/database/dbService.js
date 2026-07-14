@@ -1,6 +1,6 @@
 // src/database/dbService.js
 const supabase = require("./supabase");
-const hashUserId = require("../../hashUser");
+const hashUserId = require("../utils/hashUser");
 
 async function getOrCreateUser(telegramId) {
   const userHash = hashUserId(telegramId);

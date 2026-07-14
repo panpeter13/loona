@@ -8,6 +8,7 @@ const registerCycleHandlers = require("./handlers/cycleHandlers");
 const registerSettingsHandlers = require("./handlers/settingsHandlers");
 const registerDeleteHandlers = require("./handlers/deleteHandlers");
 const registerTextHandler = require("./handlers/textHandler");
+const registerDashboardHandler = require("./handlers/dashboardHandler");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
@@ -18,6 +19,7 @@ const registerAdminHandler = require("./handlers/adminHandler");
 const registerDonationHandler = require("./handlers/donationHandler");
 
 registerStartHandler(bot);
+registerDashboardHandler(bot);
 registerCycleHandlers(bot);
 registerSettingsHandlers(bot);
 registerDeleteHandlers(bot);
