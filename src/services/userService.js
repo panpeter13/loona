@@ -21,7 +21,6 @@ async function getOrCreateUser(telegramId) {
         .from("users")
         .update({
           telegram_id: telegramId,
-          updated_at: new Date().toISOString(),
         })
         .eq("id", existingUser.id)
         .select()
@@ -61,20 +60,14 @@ async function getOrCreateUser(telegramId) {
 async function updateCycleLength(userId, value) {
   return supabase
     .from("users")
-    .update({
-      cycle_length: value,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ cycle_length: value })
     .eq("id", userId);
 }
 
 async function updatePeriodLength(userId, value) {
   return supabase
     .from("users")
-    .update({
-      period_length: value,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ period_length: value })
     .eq("id", userId);
 }
 

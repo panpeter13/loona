@@ -4,7 +4,8 @@ const {
 } = require("../services/feedbackService");
 
 function isAdmin(ctx) {
-  return String(ctx.from.id) === String(process.env.ADMIN_ID);
+  const adminId = process.env.ADMIN_TELEGRAM_ID || process.env.ADMIN_ID;
+  return String(ctx.from.id) === String(adminId);
 }
 
 function registerAdminHandler(bot) {

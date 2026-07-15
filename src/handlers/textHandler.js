@@ -3,6 +3,7 @@ const supabase = require("../database/supabase");
 const { mainKeyboard } = require("../keyboards/mainKeyboard");
 const { saveFeedback } = require("../services/feedbackService");
 const userStates = require("../states/userStates");
+const { deleteUserData } = require("../services/dataDeletionService");
 
 const {
   parseDate,
@@ -192,11 +193,9 @@ function registerTextHandler(bot) {
         return ctx.reply("Для подтверждения нужно написать ровно: УДАЛИТЬ");
       }
 
-      await supabase.from("cycles").delete().eq("user_id", user.id);
-
-      const { error } = await supabase.from("users").delete().eq("id", user.id);
-
-      if (error) {
+      try {
+        await deleteUserData(user.id);
+      } catch (error) {
         console.log("Ошибка удаления данных:", error);
         return ctx.reply("Не получилось удалить данные.");
       }

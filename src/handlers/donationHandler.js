@@ -1,7 +1,6 @@
 const { getOrCreateUser } = require("../services/userService");
 const {
-  createDonation,
-  markDonationPaid,
+  recordPaidDonation,
   getUserDonations,
 } = require("../services/donationService");
 
@@ -17,18 +16,6 @@ function registerDonationHandler(bot) {
     }
 
     const payload = `donation:${user.id}:${amountStars}:${Date.now()}`;
-
-    const { error } = await createDonation({
-      userId: user.id,
-      telegramId: ctx.from.id,
-      amountStars,
-      payload,
-    });
-
-    if (error) {
-      console.log("Ошибка создания доната:", error);
-      return ctx.reply("Не получилось создать донат. Попробуй позже.");
-    }
 
     return ctx.replyWithInvoice({
       title: "Поддержка LOONA",
@@ -51,8 +38,17 @@ function registerDonationHandler(bot) {
 
   bot.on("successful_payment", async (ctx) => {
     const payment = ctx.message.successful_payment;
+    const user = await getOrCreateUser(ctx.from.id);
 
-    const { error } = await markDonationPaid({
+    if (!user) {
+      console.error("Оплата получена, но профиль пользователя не найден");
+      return ctx.reply("Оплата получена. Свяжитесь с поддержкой LOONA.");
+    }
+
+    const { error } = await recordPaidDonation({
+      userId: user.id,
+      telegramId: ctx.from.id,
+      amountStars: payment.total_amount,
       payload: payment.invoice_payload,
       telegramPaymentChargeId: payment.telegram_payment_charge_id,
       providerPaymentChargeId: payment.provider_payment_charge_id,

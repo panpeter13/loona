@@ -77,7 +77,8 @@ async function runNotifications(bot) {
     );
 
     if (daysToNextPeriod === 3) {
-      const alreadySent = await wasNotificationSent(user.id, "period_coming");
+      const notificationType = `period_coming:${prediction.nextPeriodStart}`;
+      const alreadySent = await wasNotificationSent(user.id, notificationType);
 
       if (!alreadySent) {
         try {
@@ -86,7 +87,7 @@ async function runNotifications(bot) {
             `🌙 Следующие месячные могут начаться примерно через 3 дня.\n\nОжидаемая дата: ${prediction.nextPeriodStart}`,
           );
 
-          await saveNotification(user.id, "period_coming");
+          await saveNotification(user.id, notificationType);
         } catch (err) {
           console.log("Ошибка отправки уведомления о скором цикле:", err);
         }
@@ -94,7 +95,8 @@ async function runNotifications(bot) {
     }
 
     if (daysToNextPeriod === 0) {
-      const alreadySent = await wasNotificationSent(user.id, "period_today");
+      const notificationType = `period_today:${prediction.nextPeriodStart}`;
+      const alreadySent = await wasNotificationSent(user.id, notificationType);
 
       if (!alreadySent) {
         try {
@@ -103,7 +105,7 @@ async function runNotifications(bot) {
             "🌙 Сегодня ожидаемая дата начала нового цикла.\n\nЕсли месячные начались, отметьте начало в LOONA.",
           );
 
-          await saveNotification(user.id, "period_today");
+          await saveNotification(user.id, notificationType);
         } catch (err) {
           console.log("Ошибка отправки уведомления на сегодня:", err);
         }
@@ -111,7 +113,8 @@ async function runNotifications(bot) {
     }
 
     if (daysToNextPeriod <= -7) {
-      const alreadySent = await wasNotificationSent(user.id, "period_late");
+      const notificationType = `period_late:${prediction.nextPeriodStart}`;
+      const alreadySent = await wasNotificationSent(user.id, notificationType);
 
       if (!alreadySent) {
         try {
@@ -120,7 +123,7 @@ async function runNotifications(bot) {
             "📅 Новый цикл пока не отмечен.\n\nЕсли месячные уже начались, отметьте дату начала, чтобы LOONA точнее считала прогноз.",
           );
 
-          await saveNotification(user.id, "period_late");
+          await saveNotification(user.id, notificationType);
         } catch (err) {
           console.log("Ошибка отправки уведомления о задержке:", err);
         }
@@ -136,7 +139,7 @@ async function runNotifications(bot) {
     if (daysOpen >= 5) {
       const alreadySent = await wasNotificationSent(
         cycle.user_id,
-        "period_end_reminder",
+        `period_end_reminder:${cycle.id}`,
       );
 
       if (alreadySent) {
@@ -154,7 +157,10 @@ async function runNotifications(bot) {
           "🩸 Обычно месячные длятся около 5 дней.\n\nЕсли они уже закончились, не забудьте отметить окончание ✅",
         );
 
-        await saveNotification(cycle.user_id, "period_end_reminder");
+        await saveNotification(
+          cycle.user_id,
+          `period_end_reminder:${cycle.id}`,
+        );
       } catch (err) {
         console.log("Ошибка отправки или сохранения:", err);
       }
