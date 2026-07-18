@@ -1,6 +1,7 @@
 const cron = require("node-cron");
 const { runNotifications } = require("./services/notificationService");
 const { runHealthCheck } = require("./services/healthService");
+const logger = require("./utils/logger");
 
 const { Telegraf } = require("telegraf");
 
@@ -13,6 +14,20 @@ const registerDashboardHandler = require("./handlers/dashboardHandler");
 const registerSymptomHandlers = require("./handlers/symptomHandlers");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+
+bot.catch(async (error, ctx) => {
+  logger.error("Необработанная ошибка Telegram update", {
+    updateType: ctx.updateType,
+    message: error?.message,
+    stack: error?.stack,
+  });
+
+  try {
+    await ctx.reply("Произошла временная ошибка. Попробуйте ещё раз позже.");
+  } catch (replyError) {
+    logger.error("Не удалось сообщить пользователю об ошибке", replyError);
+  }
+});
 
 const registerAboutHandler = require("./handlers/aboutHandler");
 
@@ -41,10 +56,29 @@ cron.schedule("*/15 * * * *", async () => {
   await runHealthCheck(bot);
 });
 
-bot.launch();
-runHealthCheck(bot);
+async function start() {
+  await bot.launch();
+  await runHealthCheck(bot);
+  logger.info("LOONA bot started", { version: require("../package.json").version });
+}
 
-console.log("LOONA bot started");
+start().catch((error) => {
+  logger.error("LOONA failed to start", error);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (error) => {
+  logger.error("Unhandled promise rejection", error);
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught exception", error);
+  try {
+    bot.stop("uncaughtException");
+  } finally {
+    process.exit(1);
+  }
+});
 
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));

@@ -2,6 +2,8 @@ const {
   getLatestFeedback,
   updateFeedbackStatus,
 } = require("../services/feedbackService");
+const { getDatabaseHealth } = require("../services/healthService");
+const packageInfo = require("../../package.json");
 
 function isAdmin(ctx) {
   const adminId = process.env.ADMIN_TELEGRAM_ID || process.env.ADMIN_ID;
@@ -9,6 +11,33 @@ function isAdmin(ctx) {
 }
 
 function registerAdminHandler(bot) {
+  bot.command("status", async (ctx) => {
+    if (!isAdmin(ctx)) {
+      return ctx.reply("Команда недоступна.");
+    }
+
+    const database = await getDatabaseHealth();
+    let telegramOk = false;
+
+    try {
+      telegramOk = Boolean(await bot.telegram.getMe());
+    } catch {
+      telegramOk = false;
+    }
+
+    const uptimeSeconds = Math.floor(process.uptime());
+    const uptimeHours = Math.floor(uptimeSeconds / 3600);
+    const uptimeMinutes = Math.floor((uptimeSeconds % 3600) / 60);
+
+    return ctx.reply(
+      `LOONA ${packageInfo.version}\n` +
+        `Окружение: ${process.env.APP_ENV || "production"}\n` +
+        `Telegram: ${telegramOk ? "✅" : "❌"}\n` +
+        `Supabase: ${database.ok ? "✅" : "❌"} (${database.latencyMs} ms)\n` +
+        `Процесс: ${uptimeHours} ч ${uptimeMinutes} мин`,
+    );
+  });
+
   bot.command("admin_feedback", async (ctx) => {
     if (!isAdmin(ctx)) {
       return ctx.reply("Команда недоступна.");
