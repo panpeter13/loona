@@ -1,12 +1,24 @@
-require("dotenv").config();
+require("dotenv").config({
+  path: process.env.DOTENV_CONFIG_PATH || ".env",
+  quiet: true,
+});
 
-const supabase = require("./supabase");
+const supabase = require("./src/database/supabase");
 
 async function test() {
-  const { data, error } = await supabase.from("users").select("*");
+  const startedAt = Date.now();
+  const { error, count } = await supabase
+    .from("users")
+    .select("id", { count: "exact", head: true });
 
-  console.log("DATA:", data);
-  console.log("ERROR:", error);
+  if (error) throw error;
+
+  console.log(
+    `Supabase OK: users=${count ?? 0}, latency=${Date.now() - startedAt}ms`,
+  );
 }
 
-test();
+test().catch((error) => {
+  console.error(`Supabase ERROR: ${error.message}`);
+  process.exitCode = 1;
+});
