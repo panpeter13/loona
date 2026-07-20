@@ -11,8 +11,15 @@ const registerSettingsHandlers = require("./handlers/settingsHandlers");
 const registerDeleteHandlers = require("./handlers/deleteHandlers");
 const registerTextHandler = require("./handlers/textHandler");
 const registerDashboardHandler = require("./handlers/dashboardHandler");
+const registerLanguageHandler = require("./handlers/languageHandler");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+
+const { normalizeText } = require("./keyboards/mainKeyboard");
+bot.use((ctx, next) => {
+  if (ctx.message?.text) ctx.message.text = normalizeText(ctx.message.text);
+  return next();
+});
 
 bot.catch(async (error, ctx) => {
   logger.error("Необработанная ошибка Telegram update", {
@@ -33,6 +40,7 @@ const registerAboutHandler = require("./handlers/aboutHandler");
 const registerAdminHandler = require("./handlers/adminHandler");
 
 registerStartHandler(bot);
+registerLanguageHandler(bot);
 registerDashboardHandler(bot);
 registerCycleHandlers(bot);
 registerSettingsHandlers(bot);

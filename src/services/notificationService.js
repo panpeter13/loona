@@ -1,4 +1,9 @@
 const supabase = require("../database/supabase");
+const notificationCopy = {
+  ru: { coming: (d) => `🌙 Следующий период может начаться примерно через 3 дня.\n\nОжидаемая дата: ${d}`, today: "🌙 Сегодня ожидаемая дата начала нового цикла.\n\nЕсли он начался, отметьте начало в LOONA.", late: "📅 Новый цикл пока не отмечен.\n\nЕсли он уже начался, отметьте дату начала, чтобы LOONA точнее считала прогноз.", end: "🩸 Обычно период длится около 5 дней.\n\nЕсли он уже завершился, не забудьте отметить окончание ✅" },
+  en: { coming: (d) => `🌙 Your next period may start in about 3 days.\n\nEstimated date: ${d}`, today: "🌙 Your next cycle is expected to start today.\n\nIf it has started, record it in LOONA.", late: "📅 A new cycle has not been recorded yet.\n\nIf it has started, save the start date to improve future estimates.", end: "🩸 A period commonly lasts around 5 days.\n\nIf it has ended, remember to record the end date ✅" },
+  ko: { coming: (d) => `🌙 약 3일 후 다음 생리가 시작될 수 있어요.\n\n예상일: ${d}`, today: "🌙 오늘은 다음 주기의 예상 시작일이에요.\n\n시작됐다면 LOONA에 기록해 주세요.", late: "📅 아직 새 주기가 기록되지 않았어요.\n\n이미 시작됐다면 더 정확한 예측을 위해 시작일을 기록해 주세요.", end: "🩸 생리는 보통 약 5일간 지속돼요.\n\n끝났다면 종료일을 기록해 주세요 ✅" },
+};
 const { predictCycle } = require("./predictionService");
 
 function formatDate(date) {
@@ -22,7 +27,8 @@ async function runNotifications(bot) {
       `
       *,
       users (
-        telegram_id
+        telegram_id,
+        language
       )
     `,
     )
@@ -66,6 +72,7 @@ async function runNotifications(bot) {
     }
 
     const prediction = predictCycle(cycles, user);
+    const message = notificationCopy[user.language] || notificationCopy.ru;
 
     if (!prediction) {
       continue;
@@ -84,7 +91,7 @@ async function runNotifications(bot) {
         try {
           await bot.telegram.sendMessage(
             user.telegram_id,
-            `🌙 Следующий период может начаться примерно через 3 дня.\n\nОжидаемая дата: ${prediction.nextPeriodStart}`,
+            message.coming(prediction.nextPeriodStart),
           );
 
           await saveNotification(user.id, notificationType);
@@ -102,7 +109,7 @@ async function runNotifications(bot) {
         try {
           await bot.telegram.sendMessage(
             user.telegram_id,
-            "🌙 Сегодня ожидаемая дата начала нового цикла.\n\nЕсли он начался, отметьте начало в LOONA.",
+            message.today,
           );
 
           await saveNotification(user.id, notificationType);
@@ -120,7 +127,7 @@ async function runNotifications(bot) {
         try {
           await bot.telegram.sendMessage(
             user.telegram_id,
-            "📅 Новый цикл пока не отмечен.\n\nЕсли он уже начался, отметьте дату начала, чтобы LOONA точнее считала прогноз.",
+            message.late,
           );
 
           await saveNotification(user.id, notificationType);
@@ -154,7 +161,7 @@ async function runNotifications(bot) {
 
         await bot.telegram.sendMessage(
           cycle.users.telegram_id,
-          "🩸 Обычно период длится около 5 дней.\n\nЕсли он уже завершился, не забудьте отметить окончание ✅",
+          (notificationCopy[cycle.users?.language] || notificationCopy.ru).end,
         );
 
         await saveNotification(

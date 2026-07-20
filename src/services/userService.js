@@ -71,8 +71,13 @@ async function updatePeriodLength(userId, value) {
     .eq("id", userId);
 }
 
+async function updateLanguage(userId, language) {
+  return supabase.from("users").update({ language }).eq("id", userId);
+}
+
 module.exports = {
   getOrCreateUser,
   updateCycleLength,
   updatePeriodLength,
+  updateLanguage,
 };

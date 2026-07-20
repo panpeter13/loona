@@ -17,6 +17,14 @@ const {
 
 const { getToday, addDays } = require("../utils/dateUtils");
 
+const cycleCopy = {
+  ru: { started: (d) => `Записала начало: ${d} 🌙`, ended: (d) => `Записала окончание: ${d} ✅`, noData: "Пока данных нет. Отметьте начало цикла 🌙", chooseStart: "Выберите дату начала:", chooseEnd: "Выберите дату окончания:", prediction: (p) => `📅 Последняя запись\n\nНачало: ${p.lastPeriodStart}\nКонец: ${p.lastPeriodEnd || "ещё не отмечен"}\n\nСредняя длина цикла: ${p.averageCycleLength} дней\nСредняя длительность периода: ${p.averagePeriodLength} дней\nУчтено циклов: ${p.cyclesUsed}\nТочность прогноза: ${p.confidence}\n\nСледующий период примерно:\n${p.nextPeriodStart} — ${p.nextPeriodEnd}\n\nОвуляция примерно: ${p.ovulationDate}\nФертильное окно примерно:\n${p.fertileWindowStart} — ${p.fertileWindowEnd}\n\n🩷 Прогноз приблизительный и не является медицинской рекомендацией.` },
+  en: { started: (d) => `Start date saved: ${d} 🌙`, ended: (d) => `End date saved: ${d} ✅`, noData: "No data yet. Record the start of your cycle 🌙", chooseStart: "Choose the start date:", chooseEnd: "Choose the end date:", prediction: (p) => `📅 Latest entry\n\nStart: ${p.lastPeriodStart}\nEnd: ${p.lastPeriodEnd || "not recorded yet"}\n\nAverage cycle length: ${p.averageCycleLength} days\nAverage period length: ${p.averagePeriodLength} days\nCycles included: ${p.cyclesUsed}\nEstimate confidence: ${{ низкая: "low", средняя: "medium", высокая: "high" }[p.confidence] || p.confidence}\n\nNext period estimate:\n${p.nextPeriodStart} — ${p.nextPeriodEnd}\n\nEstimated ovulation: ${p.ovulationDate}\nEstimated fertile window:\n${p.fertileWindowStart} — ${p.fertileWindowEnd}\n\n🩷 Estimates are approximate and are not medical advice.` },
+  ko: { started: (d) => `시작일을 기록했어요: ${d} 🌙`, ended: (d) => `종료일을 기록했어요: ${d} ✅`, noData: "아직 기록이 없어요. 주기 시작일을 기록해 주세요 🌙", chooseStart: "시작일을 선택해 주세요:", chooseEnd: "종료일을 선택해 주세요:", prediction: (p) => `📅 최근 기록\n\n시작: ${p.lastPeriodStart}\n종료: ${p.lastPeriodEnd || "아직 기록되지 않음"}\n\n평균 주기: ${p.averageCycleLength}일\n평균 생리 기간: ${p.averagePeriodLength}일\n반영된 주기: ${p.cyclesUsed}회\n예측 신뢰도: ${{ низкая: "낮음", средняя: "보통", высокая: "높음" }[p.confidence] || p.confidence}\n\n다음 생리 예상일:\n${p.nextPeriodStart} — ${p.nextPeriodEnd}\n\n예상 배란일: ${p.ovulationDate}\n예상 가임기:\n${p.fertileWindowStart} — ${p.fertileWindowEnd}\n\n🩷 예측은 참고용이며 의료 조언이 아닙니다.` },
+};
+
+function cFor(user) { return cycleCopy[user?.language] || cycleCopy.ru; }
+
 function registerCycleHandlers(bot) {
   bot.hears("🌙 Начался цикл", async (ctx) => {
     const user = await getOrCreateUser(ctx.from.id);
@@ -47,7 +55,7 @@ function registerCycleHandlers(bot) {
       return ctx.reply("Не получилось сохранить дату.");
     }
 
-    return ctx.reply(`Записала начало: ${today} 🌙`);
+    return ctx.reply(cFor(user).started(today), mainKeyboard(user));
   });
   bot.action("calendar_ignore", async (ctx) => {
     return ctx.answerCbQuery();
@@ -59,8 +67,10 @@ function registerCycleHandlers(bot) {
 
     await ctx.answerCbQuery();
 
+    const user = await getOrCreateUser(ctx.from.id);
+
     return ctx.editMessageReplyMarkup(
-      getCalendarKeyboard(year, month).reply_markup,
+      getCalendarKeyboard(year, month, user?.language).reply_markup,
     );
   });
 
@@ -116,33 +126,29 @@ function registerCycleHandlers(bot) {
       return ctx.reply("Не получилось сохранить дату окончания.");
     }
 
-    return ctx.reply(`Записала окончание: ${today} ✅`);
+    return ctx.reply(cFor(user).ended(today), mainKeyboard(user));
   });
 
-  bot.hears("✍️ Указать дату начала", (ctx) => {
+  bot.hears("✍️ Указать дату начала", async (ctx) => {
     const today = new Date();
 
     userStates[ctx.from.id] = {
       action: "calendar_start",
     };
 
-    return ctx.reply(
-      "Выберите дату начала:",
-      getCalendarKeyboard(today.getFullYear(), today.getMonth()),
-    );
+    const user = await getOrCreateUser(ctx.from.id);
+    return ctx.reply(cFor(user).chooseStart, getCalendarKeyboard(today.getFullYear(), today.getMonth(), user.language));
   });
 
-  bot.hears("✍️ Указать дату окончания", (ctx) => {
+  bot.hears("✍️ Указать дату окончания", async (ctx) => {
     const today = new Date();
 
     userStates[ctx.from.id] = {
       action: "calendar_end",
     };
 
-    return ctx.reply(
-      "Выберите дату окончания:",
-      getCalendarKeyboard(today.getFullYear(), today.getMonth()),
-    );
+    const user = await getOrCreateUser(ctx.from.id);
+    return ctx.reply(cFor(user).chooseEnd, getCalendarKeyboard(today.getFullYear(), today.getMonth(), user.language));
   });
 
   bot.hears("📅 Мой цикл", async (ctx) => {
@@ -160,7 +166,7 @@ function registerCycleHandlers(bot) {
     }
 
     if (!cycles || cycles.length === 0) {
-      return ctx.reply("Пока данных нет. Отметьте начало цикла 🌙");
+      return ctx.reply(cFor(user).noData, mainKeyboard(user));
     }
 
     const prediction = predictCycle(cycles, user);
@@ -169,19 +175,7 @@ function registerCycleHandlers(bot) {
       return ctx.reply("Не получилось построить прогноз.");
     }
 
-    return ctx.reply(
-      `📅 Последняя запись\n\n` +
-        `Начало: ${prediction.lastPeriodStart}\n` +
-        `Конец: ${prediction.lastPeriodEnd || "ещё не отмечен"}\n\n` +
-        `Средняя длина цикла: ${prediction.averageCycleLength} дней\n` +
-        `Средняя длительность периода: ${prediction.averagePeriodLength} дней\n` +
-        `Учтено циклов: ${prediction.cyclesUsed}\n` +
-        `Точность прогноза: ${prediction.confidence}\n\n` +
-        `Следующий период примерно:\n${prediction.nextPeriodStart} — ${prediction.nextPeriodEnd}\n\n` +
-        `Овуляция примерно: ${prediction.ovulationDate}\n` +
-        `Фертильное окно примерно:\n${prediction.fertileWindowStart} — ${prediction.fertileWindowEnd}\n\n` +
-        `🩷 LOONA учитывает историю ваших циклов, чтобы постепенно улучшать точность прогноза.`,
-    );
+    return ctx.reply(cFor(user).prediction(prediction), mainKeyboard(user));
   });
   bot.hears("💕 Цикл партнёрши", async (ctx) => {
     const user = await getOrCreateUser(ctx.from.id);
@@ -193,7 +187,7 @@ function registerCycleHandlers(bot) {
     if (user.mode !== "partner" || !user.linked_user_id) {
       return ctx.reply(
         "Вы ещё не подключены как партнёр.\n\nНажмите 👤 Режим → 🤝 Партнёр и введите код партнёрши.",
-        mainKeyboard,
+        mainKeyboard(user),
       );
     }
 
@@ -286,9 +280,10 @@ function registerCycleHandlers(bot) {
     );
   });
 
-  bot.hears("❌ Отмена", (ctx) => {
+  bot.hears("❌ Отмена", async (ctx) => {
     delete userStates[ctx.from.id];
-    return ctx.reply("Отменено.", mainKeyboard);
+    const user = await getOrCreateUser(ctx.from.id);
+    return ctx.reply("Отменено.", mainKeyboard(user));
   });
 }
 async function handleCalendarDate(ctx, selectedDate) {
@@ -324,7 +319,7 @@ async function handleCalendarDate(ctx, selectedDate) {
       await ctx.answerCbQuery();
       return ctx.reply(
         `Уже есть открытая запись: ${openedCycle.period_start}\n\nСначала закройте или отмените её.`,
-        mainKeyboard,
+        mainKeyboard(user),
       );
     }
 
@@ -341,7 +336,7 @@ async function handleCalendarDate(ctx, selectedDate) {
     await ctx.answerCbQuery("Дата выбрана");
     await ctx.editMessageText(`Выбрана дата начала: ${selectedDate}`);
 
-    return ctx.reply(`Записала начало: ${selectedDate} 🌙`, mainKeyboard);
+    return ctx.reply(cFor(user).started(selectedDate), mainKeyboard(user));
   }
 
   if (state.action === "calendar_end") {
@@ -359,7 +354,7 @@ async function handleCalendarDate(ctx, selectedDate) {
       await ctx.answerCbQuery();
       await ctx.editMessageText("Нет открытого цикла.");
 
-      return ctx.reply("Сначала отметьте начало цикла 🌙", mainKeyboard);
+      return ctx.reply("Сначала отметьте начало цикла 🌙", mainKeyboard(user));
     }
 
     if (selectedDate < cycle.period_start) {
@@ -380,7 +375,7 @@ async function handleCalendarDate(ctx, selectedDate) {
     await ctx.answerCbQuery("Дата выбрана");
     await ctx.editMessageText(`Выбрана дата окончания: ${selectedDate}`);
 
-    return ctx.reply(`Записала окончание: ${selectedDate} ✅`, mainKeyboard);
+    return ctx.reply(cFor(user).ended(selectedDate), mainKeyboard(user));
   }
 
   await ctx.answerCbQuery();
