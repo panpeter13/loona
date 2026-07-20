@@ -18,7 +18,7 @@ const {
 const { getToday, addDays } = require("../utils/dateUtils");
 
 function registerCycleHandlers(bot) {
-  bot.hears("🌙 Начались месячные", async (ctx) => {
+  bot.hears("🌙 Начался цикл", async (ctx) => {
     const user = await getOrCreateUser(ctx.from.id);
 
     if (!user) {
@@ -36,7 +36,7 @@ function registerCycleHandlers(bot) {
 
     if (openedCycle) {
       return ctx.reply(
-        `Уже есть открытая запись 🌙\n\nНачало: ${openedCycle.period_start}\n\nСначала нажмите ✅ Закончились или ↩️ Отменить последнюю запись.`,
+        `Уже есть открытая запись 🌙\n\nНачало: ${openedCycle.period_start}\n\nСначала нажмите ✅ Завершился или ↩️ Отменить последнюю запись.`,
       );
     }
 
@@ -83,7 +83,7 @@ function registerCycleHandlers(bot) {
 
     return ctx.editMessageText("Выбор даты отменён.");
   });
-  bot.hears("✅ Закончились", async (ctx) => {
+  bot.hears("✅ Завершился", async (ctx) => {
     const user = await getOrCreateUser(ctx.from.id);
 
     if (!user) {
@@ -101,7 +101,7 @@ function registerCycleHandlers(bot) {
 
     if (!cycle) {
       return ctx.reply(
-        "Нет открытого цикла. Сначала отметьте начало месячных 🌙",
+        "Нет открытого цикла. Сначала отметьте его начало 🌙",
       );
     }
 
@@ -160,7 +160,7 @@ function registerCycleHandlers(bot) {
     }
 
     if (!cycles || cycles.length === 0) {
-      return ctx.reply("Пока данных нет. Отметьте начало месячных 🌙");
+      return ctx.reply("Пока данных нет. Отметьте начало цикла 🌙");
     }
 
     const prediction = predictCycle(cycles, user);
@@ -174,10 +174,10 @@ function registerCycleHandlers(bot) {
         `Начало: ${prediction.lastPeriodStart}\n` +
         `Конец: ${prediction.lastPeriodEnd || "ещё не отмечен"}\n\n` +
         `Средняя длина цикла: ${prediction.averageCycleLength} дней\n` +
-        `Средняя длительность месячных: ${prediction.averagePeriodLength} дней\n` +
+        `Средняя длительность периода: ${prediction.averagePeriodLength} дней\n` +
         `Учтено циклов: ${prediction.cyclesUsed}\n` +
         `Точность прогноза: ${prediction.confidence}\n\n` +
-        `Следующие месячные примерно:\n${prediction.nextPeriodStart} — ${prediction.nextPeriodEnd}\n\n` +
+        `Следующий период примерно:\n${prediction.nextPeriodStart} — ${prediction.nextPeriodEnd}\n\n` +
         `Овуляция примерно: ${prediction.ovulationDate}\n` +
         `Фертильное окно примерно:\n${prediction.fertileWindowStart} — ${prediction.fertileWindowEnd}\n\n` +
         `🩷 LOONA учитывает историю ваших циклов, чтобы постепенно улучшать точность прогноза.`,
@@ -236,7 +236,7 @@ function registerCycleHandlers(bot) {
         `Последняя запись:\n` +
         `Начало: ${lastCycle.period_start}\n` +
         `Конец: ${lastCycle.period_end || "ещё не отмечен"}\n\n` +
-        `Следующие месячные примерно:\n${nextPeriodStart} — ${nextPeriodEnd}\n\n` +
+        `Следующий период примерно:\n${nextPeriodStart} — ${nextPeriodEnd}\n\n` +
         `Овуляция примерно: ${ovulationDate}\n` +
         `Фертильное окно примерно:\n${fertileStart} — ${fertileEnd}\n\n` +
         `Это примерный прогноз, не медицинская гарантия.`,
@@ -359,7 +359,7 @@ async function handleCalendarDate(ctx, selectedDate) {
       await ctx.answerCbQuery();
       await ctx.editMessageText("Нет открытого цикла.");
 
-      return ctx.reply("Сначала отметьте начало месячных 🌙", mainKeyboard);
+      return ctx.reply("Сначала отметьте начало цикла 🌙", mainKeyboard);
     }
 
     if (selectedDate < cycle.period_start) {
