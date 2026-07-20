@@ -30,6 +30,12 @@ function registerTextHandler(bot) {
     const state = userStates[ctx.from.id];
 
     const user = await getOrCreateUser(ctx.from.id);
+    const messages = {
+      ru: { saved: "❤️ Спасибо!\n\nВаше сообщение сохранено.", linked: "Готово 🤝\n\nВы подключены как партнёр.", deleted: "Все данные удалены 🗑", unknown: "Не поняла команду. Нажмите ❓ Помощь.", cycleSaved: (v) => `Сохранила длину цикла: ${v} дней`, periodSaved: (v) => `Сохранила длительность периода: ${v} дней`, confirm: (w) => `Для подтверждения нужно написать ровно: ${w}` },
+      en: { saved: "❤️ Thank you!\n\nYour message has been saved.", linked: "Done 🤝\n\nYou are connected as a partner.", deleted: "All data has been deleted 🗑", unknown: "I didn't understand that. Tap ❓ Help.", cycleSaved: (v) => `Cycle length saved: ${v} days`, periodSaved: (v) => `Period length saved: ${v} days`, confirm: (w) => `To confirm, type exactly: ${w}` },
+      ko: { saved: "❤️ 감사합니다!\n\n메시지가 저장됐어요.", linked: "완료됐어요 🤝\n\n파트너로 연결됐어요.", deleted: "모든 데이터가 삭제됐어요 🗑", unknown: "명령을 이해하지 못했어요. ❓ 도움말을 눌러 주세요.", cycleSaved: (v) => `주기 길이를 ${v}일로 저장했어요`, periodSaved: (v) => `생리 기간을 ${v}일로 저장했어요`, confirm: (w) => `확인하려면 정확히 입력해 주세요: ${w}` },
+    };
+    const c = messages[user?.language] || messages.ru;
 
     if (!user) {
       return ctx.reply("Не получилось найти профиль.");
@@ -47,10 +53,7 @@ function registerTextHandler(bot) {
 
       delete userStates[ctx.from.id];
 
-      return ctx.reply(
-        "❤️ Спасибо!\n\nВаше сообщение сохранено.",
-        mainKeyboard,
-      );
+      return ctx.reply(c.saved, mainKeyboard(user));
     }
 
     if (state?.action === "enter_partner_code") {
@@ -93,7 +96,7 @@ function registerTextHandler(bot) {
 
       delete userStates[ctx.from.id];
 
-      return ctx.reply("Готово 🤝\n\nВы подключены как партнёр.", mainKeyboard);
+      return ctx.reply(c.linked, mainKeyboard(user));
     }
 
     if (state?.action === "manual_start") {
@@ -123,7 +126,7 @@ function registerTextHandler(bot) {
       if (openedCycle) {
         return ctx.reply(
           `Уже есть открытая запись: ${openedCycle.period_start}\n\nСначала закройте или отмените её.`,
-          mainKeyboard,
+          mainKeyboard(user),
         );
       }
 
@@ -136,7 +139,7 @@ function registerTextHandler(bot) {
 
       delete userStates[ctx.from.id];
 
-      return ctx.reply(`Записала начало: ${date} 🌙`, mainKeyboard);
+      return ctx.reply(`Записала начало: ${date} 🌙`, mainKeyboard(user));
     }
 
     if (state?.action === "manual_end") {
@@ -161,7 +164,7 @@ function registerTextHandler(bot) {
 
       if (!cycle) {
         delete userStates[ctx.from.id];
-        return ctx.reply("Нет открытого цикла.", mainKeyboard);
+        return ctx.reply("Нет открытого цикла.", mainKeyboard(user));
       }
 
       if (date < cycle.period_start) {
@@ -185,12 +188,13 @@ function registerTextHandler(bot) {
 
       delete userStates[ctx.from.id];
 
-      return ctx.reply(`Записала окончание: ${date} ✅`, mainKeyboard);
+      return ctx.reply(`Записала окончание: ${date} ✅`, mainKeyboard(user));
     }
 
     if (state?.action === "confirm_delete") {
-      if (text !== "УДАЛИТЬ") {
-        return ctx.reply("Для подтверждения нужно написать ровно: УДАЛИТЬ");
+      const confirmWord = state.confirmWord || "УДАЛИТЬ";
+      if (text !== confirmWord) {
+        return ctx.reply(c.confirm(confirmWord));
       }
 
       try {
@@ -202,7 +206,7 @@ function registerTextHandler(bot) {
 
       delete userStates[ctx.from.id];
 
-      return ctx.reply("Все данные удалены 🗑", mainKeyboard);
+      return ctx.reply(c.deleted, mainKeyboard(user));
     }
 
     const cycleMatch = text.match(/^цикл\s+(\d+)$/i);
@@ -221,7 +225,7 @@ function registerTextHandler(bot) {
         return ctx.reply("Не получилось сохранить настройку.");
       }
 
-      return ctx.reply(`Сохранила длину цикла: ${value} дней`);
+      return ctx.reply(c.cycleSaved(value));
     }
 
     const periodMatch = text.match(/^период\s+(\d+)$/i);
@@ -240,10 +244,10 @@ function registerTextHandler(bot) {
         return ctx.reply("Не получилось сохранить настройку.");
       }
 
-      return ctx.reply(`Сохранила длительность периода: ${value} дней`);
+      return ctx.reply(c.periodSaved(value));
     }
 
-    return ctx.reply("Не поняла команду. Нажмите ❓ Помощь.");
+    return ctx.reply(c.unknown, mainKeyboard(user));
   });
 }
 

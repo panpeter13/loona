@@ -1,21 +1,13 @@
 const { Markup } = require("telegraf");
 
-const monthNames = [
-  "Январь",
-  "Февраль",
-  "Март",
-  "Апрель",
-  "Май",
-  "Июнь",
-  "Июль",
-  "Август",
-  "Сентябрь",
-  "Октябрь",
-  "Ноябрь",
-  "Декабрь",
-];
+const localeData = {
+  ru: { months: ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"], week: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], today: "Сегодня", cancel: "❌ Отмена" },
+  en: { months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], week: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], today: "Today", cancel: "❌ Cancel" },
+  ko: { months: ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"], week: ["월", "화", "수", "목", "금", "토", "일"], today: "오늘", cancel: "❌ 취소" },
+};
 
-function getCalendarKeyboard(year, month) {
+function getCalendarKeyboard(year, month, language = "ru") {
+  const locale = localeData[language] || localeData.ru;
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
 
@@ -27,17 +19,11 @@ function getCalendarKeyboard(year, month) {
   const buttons = [];
 
   buttons.push([
-    Markup.button.callback(`${monthNames[month]} ${year}`, `calendar_ignore`),
+    Markup.button.callback(`${locale.months[month]} ${year}`, `calendar_ignore`),
   ]);
 
   buttons.push([
-    Markup.button.callback("Пн", "calendar_ignore"),
-    Markup.button.callback("Вт", "calendar_ignore"),
-    Markup.button.callback("Ср", "calendar_ignore"),
-    Markup.button.callback("Чт", "calendar_ignore"),
-    Markup.button.callback("Пт", "calendar_ignore"),
-    Markup.button.callback("Сб", "calendar_ignore"),
-    Markup.button.callback("Вс", "calendar_ignore"),
+    ...locale.week.map((day) => Markup.button.callback(day, "calendar_ignore")),
   ]);
 
   let week = [];
@@ -77,14 +63,14 @@ function getCalendarKeyboard(year, month) {
       "⬅️",
       `calendar_month:${prevMonth.getFullYear()}:${prevMonth.getMonth()}`,
     ),
-    Markup.button.callback("Сегодня", "calendar_today"),
+    Markup.button.callback(locale.today, "calendar_today"),
     Markup.button.callback(
       "➡️",
       `calendar_month:${nextMonth.getFullYear()}:${nextMonth.getMonth()}`,
     ),
   ]);
 
-  buttons.push([Markup.button.callback("❌ Отмена", "calendar_cancel")]);
+  buttons.push([Markup.button.callback(locale.cancel, "calendar_cancel")]);
 
   return Markup.inlineKeyboard(buttons);
 }

@@ -7,17 +7,17 @@ function registerDashboardHandler(bot) {
     const user = await getOrCreateUser(ctx.from.id);
 
     if (!user) {
-      return ctx.reply("Не получилось найти профиль.", mainKeyboard);
+      return ctx.reply("Не получилось найти профиль.", mainKeyboard());
     }
 
     try {
       const text = await getDashboardText(user);
-      return ctx.reply(text, mainKeyboard);
+      return ctx.reply(text, mainKeyboard(user));
     } catch (error) {
       console.error("Ошибка загрузки главного экрана:", error);
       return ctx.reply(
         "Не получилось загрузить главный экран. Попробуйте позже.",
-        mainKeyboard,
+        mainKeyboard(user),
       );
     }
   });
