@@ -7,16 +7,10 @@ async function getExportData(user) {
     .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
-  const { data: symptoms, error: symptomsError } = await supabase
-    .from("symptoms")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: true });
-
-  if (cyclesError || symptomsError) {
+  if (cyclesError) {
     return {
       data: null,
-      error: cyclesError || symptomsError,
+      error: cyclesError,
     };
   }
 
@@ -30,7 +24,6 @@ async function getExportData(user) {
         language: user.language,
       },
       cycles,
-      symptoms,
     },
     error: null,
   };

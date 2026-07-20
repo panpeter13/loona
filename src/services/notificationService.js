@@ -84,7 +84,7 @@ async function runNotifications(bot) {
         try {
           await bot.telegram.sendMessage(
             user.telegram_id,
-            `🌙 Следующие месячные могут начаться примерно через 3 дня.\n\nОжидаемая дата: ${prediction.nextPeriodStart}`,
+            `🌙 Следующий период может начаться примерно через 3 дня.\n\nОжидаемая дата: ${prediction.nextPeriodStart}`,
           );
 
           await saveNotification(user.id, notificationType);
@@ -102,7 +102,7 @@ async function runNotifications(bot) {
         try {
           await bot.telegram.sendMessage(
             user.telegram_id,
-            "🌙 Сегодня ожидаемая дата начала нового цикла.\n\nЕсли месячные начались, отметьте начало в LOONA.",
+            "🌙 Сегодня ожидаемая дата начала нового цикла.\n\nЕсли он начался, отметьте начало в LOONA.",
           );
 
           await saveNotification(user.id, notificationType);
@@ -120,7 +120,7 @@ async function runNotifications(bot) {
         try {
           await bot.telegram.sendMessage(
             user.telegram_id,
-            "📅 Новый цикл пока не отмечен.\n\nЕсли месячные уже начались, отметьте дату начала, чтобы LOONA точнее считала прогноз.",
+            "📅 Новый цикл пока не отмечен.\n\nЕсли он уже начался, отметьте дату начала, чтобы LOONA точнее считала прогноз.",
           );
 
           await saveNotification(user.id, notificationType);
@@ -154,7 +154,7 @@ async function runNotifications(bot) {
 
         await bot.telegram.sendMessage(
           cycle.users.telegram_id,
-          "🩸 Обычно месячные длятся около 5 дней.\n\nЕсли они уже закончились, не забудьте отметить окончание ✅",
+          "🩸 Обычно период длится около 5 дней.\n\nЕсли он уже завершился, не забудьте отметить окончание ✅",
         );
 
         await saveNotification(

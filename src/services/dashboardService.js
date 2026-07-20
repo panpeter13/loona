@@ -64,7 +64,7 @@ async function getDashboardText(currentUser) {
   const cycleLength = targetUser.cycle_length || 28;
   const periodLength = targetUser.period_length || 5;
   let statusText =
-    "Циклы ещё не зафиксированы. Отметьте начало месячных кнопкой ниже 👇";
+    "Циклы ещё не зафиксированы. Отметьте начало кнопкой ниже 👇";
 
   if (cycle) {
     const daysSinceStart = getDaysDiff(getToday(), cycle.period_start) + 1;
@@ -73,7 +73,7 @@ async function getDashboardText(currentUser) {
       statusText = `Последняя запись начинается ${cycle.period_start}.`;
     } else if (!cycle.period_end) {
       statusText =
-        `🔴 Идут месячные — ${daysSinceStart}-й день\n` +
+        `🔴 Идёт период — ${daysSinceStart}-й день\n` +
         `Обычная длительность: около ${periodLength} дней.`;
     } else if (daysSinceStart <= cycleLength) {
       const daysLeft = cycleLength - daysSinceStart + 1;
@@ -86,7 +86,7 @@ async function getDashboardText(currentUser) {
 
       statusText =
         `🌸 ${daysSinceStart}-й день цикла — ${phase}\n` +
-        `До следующих месячных: примерно ${daysLeft} дн.`;
+        `До следующего периода: примерно ${daysLeft} дн.`;
     } else {
       const delay = daysSinceStart - cycleLength;
       statusText =
@@ -97,7 +97,7 @@ async function getDashboardText(currentUser) {
 
   return (
     `${title}\n\n${statusText}\n\n` +
-    `Параметры: цикл ${cycleLength} дн., месячные ${periodLength} дн.\n\n` +
+    `Параметры: цикл ${cycleLength} дн., период ${periodLength} дн.\n\n` +
     "Прогноз приблизительный и не является медицинской рекомендацией."
   );
 }

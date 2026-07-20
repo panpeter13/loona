@@ -224,23 +224,23 @@ function registerTextHandler(bot) {
       return ctx.reply(`Сохранила длину цикла: ${value} дней`);
     }
 
-    const periodMatch = text.match(/^месячные\s+(\d+)$/i);
+    const periodMatch = text.match(/^период\s+(\d+)$/i);
 
     if (periodMatch) {
       const value = Number(periodMatch[1]);
 
       if (value < 1 || value > 14) {
-        return ctx.reply("Длительность месячных должна быть от 1 до 14 дней.");
+        return ctx.reply("Длительность периода должна быть от 1 до 14 дней.");
       }
 
       const { error } = await updatePeriodLength(user.id, value);
 
       if (error) {
-        console.log("Ошибка настройки месячных:", error);
+        console.log("Ошибка настройки периода:", error);
         return ctx.reply("Не получилось сохранить настройку.");
       }
 
-      return ctx.reply(`Сохранила длительность месячных: ${value} дней`);
+      return ctx.reply(`Сохранила длительность периода: ${value} дней`);
     }
 
     return ctx.reply("Не поняла команду. Нажмите ❓ Помощь.");
