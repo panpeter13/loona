@@ -25,6 +25,12 @@ const cycleCopy = {
 
 function cFor(user) { return cycleCopy[user?.language] || cycleCopy.ru; }
 
+const partnerCopy = {
+  ru: (p) => `💕 Цикл партнёрши\n\nПоследняя запись:\nНачало: ${p.start}\nКонец: ${p.end || "ещё не отмечен"}\n\nСледующий период примерно:\n${p.nextStart} — ${p.nextEnd}\n\nОвуляция примерно: ${p.ovulation}\nФертильное окно примерно:\n${p.fertileStart} — ${p.fertileEnd}\n\nЭто примерный прогноз, не медицинская гарантия.`,
+  en: (p) => `💕 Partner's cycle\n\nLatest entry:\nStart: ${p.start}\nEnd: ${p.end || "not recorded yet"}\n\nNext period estimate:\n${p.nextStart} — ${p.nextEnd}\n\nEstimated ovulation: ${p.ovulation}\nEstimated fertile window:\n${p.fertileStart} — ${p.fertileEnd}\n\nThis is an estimate, not medical advice.`,
+  ko: (p) => `💕 파트너 주기\n\n최근 기록:\n시작: ${p.start}\n종료: ${p.end || "아직 기록되지 않음"}\n\n다음 생리 예상일:\n${p.nextStart} — ${p.nextEnd}\n\n예상 배란일: ${p.ovulation}\n예상 가임기:\n${p.fertileStart} — ${p.fertileEnd}\n\n예측은 참고용이며 의료 조언이 아닙니다.`,
+};
+
 function registerCycleHandlers(bot) {
   bot.hears("🌙 Начался цикл", async (ctx) => {
     const user = await getOrCreateUser(ctx.from.id);
@@ -225,16 +231,8 @@ function registerCycleHandlers(bot) {
     const fertileStart = addDays(ovulationDate, -5);
     const fertileEnd = addDays(ovulationDate, 1);
 
-    return ctx.reply(
-      `💕 Цикл партнёрши\n\n` +
-        `Последняя запись:\n` +
-        `Начало: ${lastCycle.period_start}\n` +
-        `Конец: ${lastCycle.period_end || "ещё не отмечен"}\n\n` +
-        `Следующий период примерно:\n${nextPeriodStart} — ${nextPeriodEnd}\n\n` +
-        `Овуляция примерно: ${ovulationDate}\n` +
-        `Фертильное окно примерно:\n${fertileStart} — ${fertileEnd}\n\n` +
-        `Это примерный прогноз, не медицинская гарантия.`,
-    );
+    const formatter = partnerCopy[user.language] || partnerCopy.ru;
+    return ctx.reply(formatter({ start: lastCycle.period_start, end: lastCycle.period_end, nextStart: nextPeriodStart, nextEnd: nextPeriodEnd, ovulation: ovulationDate, fertileStart, fertileEnd }), mainKeyboard(user));
   });
 
   bot.hears("↩️ Отменить последнюю запись", async (ctx) => {
