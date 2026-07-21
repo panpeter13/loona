@@ -3,6 +3,7 @@ const { mainKeyboard } = require("../keyboards/mainKeyboard");
 const { getCalendarKeyboard } = require("../keyboards/calendarKeyboard");
 const userStates = require("../states/userStates");
 const { predictCycle } = require("../services/predictionService");
+const { formatPrediction } = require("../services/predictionText");
 const { getOrCreateUser } = require("../services/userService");
 
 const {
@@ -15,21 +16,15 @@ const {
   getUserCycles,
 } = require("../services/cycleService");
 
-const { getToday, addDays } = require("../utils/dateUtils");
+const { getToday } = require("../utils/dateUtils");
 
 const cycleCopy = {
-  ru: { started: (d) => `Записала начало: ${d} 🌙`, ended: (d) => `Записала окончание: ${d} ✅`, noData: "Пока данных нет. Отметьте начало цикла 🌙", chooseStart: "Выберите дату начала:", chooseEnd: "Выберите дату окончания:", prediction: (p) => `📅 Последняя запись\n\nНачало: ${p.lastPeriodStart}\nКонец: ${p.lastPeriodEnd || "ещё не отмечен"}\n\nСредняя длина цикла: ${p.averageCycleLength} дней\nСредняя длительность периода: ${p.averagePeriodLength} дней\nУчтено циклов: ${p.cyclesUsed}\nТочность прогноза: ${p.confidence}\n\nСледующий период примерно:\n${p.nextPeriodStart} — ${p.nextPeriodEnd}\n\nОвуляция примерно: ${p.ovulationDate}\nФертильное окно примерно:\n${p.fertileWindowStart} — ${p.fertileWindowEnd}\n\n🩷 Прогноз приблизительный и не является медицинской рекомендацией.` },
-  en: { started: (d) => `Start date saved: ${d} 🌙`, ended: (d) => `End date saved: ${d} ✅`, noData: "No data yet. Record the start of your cycle 🌙", chooseStart: "Choose the start date:", chooseEnd: "Choose the end date:", prediction: (p) => `📅 Latest entry\n\nStart: ${p.lastPeriodStart}\nEnd: ${p.lastPeriodEnd || "not recorded yet"}\n\nAverage cycle length: ${p.averageCycleLength} days\nAverage period length: ${p.averagePeriodLength} days\nCycles included: ${p.cyclesUsed}\nEstimate confidence: ${{ низкая: "low", средняя: "medium", высокая: "high" }[p.confidence] || p.confidence}\n\nNext period estimate:\n${p.nextPeriodStart} — ${p.nextPeriodEnd}\n\nEstimated ovulation: ${p.ovulationDate}\nEstimated fertile window:\n${p.fertileWindowStart} — ${p.fertileWindowEnd}\n\n🩷 Estimates are approximate and are not medical advice.` },
-  ko: { started: (d) => `시작일을 기록했어요: ${d} 🌙`, ended: (d) => `종료일을 기록했어요: ${d} ✅`, noData: "아직 기록이 없어요. 주기 시작일을 기록해 주세요 🌙", chooseStart: "시작일을 선택해 주세요:", chooseEnd: "종료일을 선택해 주세요:", prediction: (p) => `📅 최근 기록\n\n시작: ${p.lastPeriodStart}\n종료: ${p.lastPeriodEnd || "아직 기록되지 않음"}\n\n평균 주기: ${p.averageCycleLength}일\n평균 생리 기간: ${p.averagePeriodLength}일\n반영된 주기: ${p.cyclesUsed}회\n예측 신뢰도: ${{ низкая: "낮음", средняя: "보통", высокая: "높음" }[p.confidence] || p.confidence}\n\n다음 생리 예상일:\n${p.nextPeriodStart} — ${p.nextPeriodEnd}\n\n예상 배란일: ${p.ovulationDate}\n예상 가임기:\n${p.fertileWindowStart} — ${p.fertileWindowEnd}\n\n🩷 예측은 참고용이며 의료 조언이 아닙니다.` },
+  ru: { started: (d) => `Записала начало: ${d} 🌙`, ended: (d) => `Записала окончание: ${d} ✅`, noData: "Пока данных нет. Отметьте начало цикла 🌙", chooseStart: "Выберите дату начала:", chooseEnd: "Выберите дату окончания:" },
+  en: { started: (d) => `Start date saved: ${d} 🌙`, ended: (d) => `End date saved: ${d} ✅`, noData: "No data yet. Record the start of your cycle 🌙", chooseStart: "Choose the start date:", chooseEnd: "Choose the end date:" },
+  ko: { started: (d) => `시작일을 기록했어요: ${d} 🌙`, ended: (d) => `종료일을 기록했어요: ${d} ✅`, noData: "아직 기록이 없어요. 주기 시작일을 기록해 주세요 🌙", chooseStart: "시작일을 선택해 주세요:", chooseEnd: "종료일을 선택해 주세요:" },
 };
 
 function cFor(user) { return cycleCopy[user?.language] || cycleCopy.ru; }
-
-const partnerCopy = {
-  ru: (p) => `💕 Цикл партнёрши\n\nПоследняя запись:\nНачало: ${p.start}\nКонец: ${p.end || "ещё не отмечен"}\n\nСледующий период примерно:\n${p.nextStart} — ${p.nextEnd}\n\nОвуляция примерно: ${p.ovulation}\nФертильное окно примерно:\n${p.fertileStart} — ${p.fertileEnd}\n\nЭто примерный прогноз, не медицинская гарантия.`,
-  en: (p) => `💕 Partner's cycle\n\nLatest entry:\nStart: ${p.start}\nEnd: ${p.end || "not recorded yet"}\n\nNext period estimate:\n${p.nextStart} — ${p.nextEnd}\n\nEstimated ovulation: ${p.ovulation}\nEstimated fertile window:\n${p.fertileStart} — ${p.fertileEnd}\n\nThis is an estimate, not medical advice.`,
-  ko: (p) => `💕 파트너 주기\n\n최근 기록:\n시작: ${p.start}\n종료: ${p.end || "아직 기록되지 않음"}\n\n다음 생리 예상일:\n${p.nextStart} — ${p.nextEnd}\n\n예상 배란일: ${p.ovulation}\n예상 가임기:\n${p.fertileStart} — ${p.fertileEnd}\n\n예측은 참고용이며 의료 조언이 아닙니다.`,
-};
 
 function registerCycleHandlers(bot) {
   bot.hears("🌙 Начался цикл", async (ctx) => {
@@ -39,7 +34,7 @@ function registerCycleHandlers(bot) {
       return ctx.reply("Не получилось найти профиль.");
     }
 
-    const today = getToday();
+    const today = getToday(user.timezone);
 
     const { data: openedCycle, error: findError } = await getOpenCycle(user.id);
 
@@ -81,7 +76,8 @@ function registerCycleHandlers(bot) {
   });
 
   bot.action("calendar_today", async (ctx) => {
-    const today = getToday();
+    const user = await getOrCreateUser(ctx.from.id);
+    const today = getToday(user?.timezone);
 
     return handleCalendarDate(ctx, today);
   });
@@ -106,7 +102,7 @@ function registerCycleHandlers(bot) {
       return ctx.reply("Не получилось найти профиль.");
     }
 
-    const today = getToday();
+    const today = getToday(user.timezone);
 
     const { data: cycle, error: findError } = await getOpenCycle(user.id);
 
@@ -181,7 +177,7 @@ function registerCycleHandlers(bot) {
       return ctx.reply("Не получилось построить прогноз.");
     }
 
-    return ctx.reply(cFor(user).prediction(prediction), mainKeyboard(user));
+    return ctx.reply(formatPrediction(prediction, user.language), mainKeyboard(user));
   });
   bot.hears("💕 Цикл партнёрши", async (ctx) => {
     const user = await getOrCreateUser(ctx.from.id);
@@ -208,31 +204,22 @@ function registerCycleHandlers(bot) {
       return ctx.reply("Не получилось найти данные партнёрши.");
     }
 
-    const { data: lastCycle, error } = await getLastCycle(partnerUser.id);
+    const { data: partnerCycles, error } = await getUserCycles(partnerUser.id);
 
     if (error) {
       console.log("Ошибка получения цикла партнёрши:", error);
       return ctx.reply("Не получилось загрузить данные.");
     }
 
-    if (!lastCycle) {
+    if (!partnerCycles?.length) {
       return ctx.reply("Пока у партнёрши нет записей о цикле.");
     }
 
-    const cycleLength =
-      lastCycle.cycle_length || partnerUser.cycle_length || 28;
-
-    const periodLength =
-      lastCycle.period_length || partnerUser.period_length || 5;
-
-    const nextPeriodStart = addDays(lastCycle.period_start, cycleLength);
-    const nextPeriodEnd = addDays(nextPeriodStart, periodLength - 1);
-    const ovulationDate = addDays(nextPeriodStart, -14);
-    const fertileStart = addDays(ovulationDate, -5);
-    const fertileEnd = addDays(ovulationDate, 1);
-
-    const formatter = partnerCopy[user.language] || partnerCopy.ru;
-    return ctx.reply(formatter({ start: lastCycle.period_start, end: lastCycle.period_end, nextStart: nextPeriodStart, nextEnd: nextPeriodEnd, ovulation: ovulationDate, fertileStart, fertileEnd }), mainKeyboard(user));
+    const prediction = predictCycle(partnerCycles, partnerUser);
+    return ctx.reply(
+      formatPrediction(prediction, user.language, { partner: true }),
+      mainKeyboard(user),
+    );
   });
 
   bot.hears("↩️ Отменить последнюю запись", async (ctx) => {
@@ -299,7 +286,7 @@ async function handleCalendarDate(ctx, selectedDate) {
     return ctx.reply("Не получилось найти профиль.");
   }
 
-  if (selectedDate > getToday()) {
+  if (selectedDate > getToday(user.timezone)) {
     await ctx.answerCbQuery("Нельзя выбрать дату из будущего");
     return;
   }

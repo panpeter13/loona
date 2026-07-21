@@ -108,7 +108,7 @@ function registerTextHandler(bot) {
         );
       }
 
-      if (isFutureDate(date)) {
+      if (isFutureDate(date, user.timezone)) {
         return ctx.reply(
           "Нельзя указать дату из будущего. Машину времени пока не добавляли.",
         );
@@ -151,7 +151,7 @@ function registerTextHandler(bot) {
         );
       }
 
-      if (isFutureDate(date)) {
+      if (isFutureDate(date, user.timezone)) {
         return ctx.reply("Нельзя указать дату окончания из будущего.");
       }
 

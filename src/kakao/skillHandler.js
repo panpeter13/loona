@@ -7,6 +7,7 @@ const {
   getUserCycles,
 } = require("../services/cycleService");
 const { predictCycle } = require("../services/predictionService");
+const { formatPrediction } = require("../services/predictionText");
 const { getToday } = require("../utils/dateUtils");
 
 const WELCOME =
@@ -49,7 +50,7 @@ async function handleKakaoSkill(body) {
     if (error) return response("현재 주기를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
     if (openCycle) return response(`이미 진행 중인 기록이 있어요.\n\n시작일: ${openCycle.period_start}`);
 
-    const today = getToday();
+    const today = getToday(user.timezone);
     const { error: createError } = await createCycle(user, today);
     return createError
       ? response("시작일을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.")
@@ -62,7 +63,7 @@ async function handleKakaoSkill(body) {
     if (error) return response("현재 주기를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
     if (!openCycle) return response("진행 중인 기록이 없어요. 먼저 시작일을 기록해 주세요 🌙");
 
-    const today = getToday();
+    const today = getToday(user.timezone);
     const { error: closeError } = await closeCycle(openCycle.id, today);
     return closeError
       ? response("종료일을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.")
@@ -78,13 +79,7 @@ async function handleKakaoSkill(body) {
     const prediction = predictCycle(cycles, user);
     if (!prediction) return response("예측을 만들 수 없어요. 기록을 다시 확인해 주세요.");
 
-    return response(
-      `📅 내 주기\n\n최근 시작일: ${prediction.lastPeriodStart}\n` +
-        `다음 생리 예상일: ${prediction.nextPeriodStart} — ${prediction.nextPeriodEnd}\n` +
-        `예상 배란일: ${prediction.ovulationDate}\n` +
-        `예상 가임기: ${prediction.fertileWindowStart} — ${prediction.fertileWindowEnd}\n\n` +
-        "예측은 참고용이며 의료 조언이 아닙니다.",
-    );
+    return response(formatPrediction(prediction, "ko"));
   }
 
   if (utterance === "개인정보") {
