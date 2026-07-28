@@ -1,11 +1,29 @@
-function getToday() {
-  return new Date().toISOString().slice(0, 10);
+const DAY_MS = 86400000;
+
+function parseDateOnly(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+function getToday(timeZone = process.env.APP_TIMEZONE || "Asia/Seoul") {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  } catch {
+    return getToday("Asia/Seoul");
+  }
 }
 
 function addDays(dateString, days) {
-  const date = new Date(dateString);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return new Date(parseDateOnly(dateString) + days * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
 }
 
 function parseDate(input) {
@@ -35,14 +53,11 @@ function isValidDate(dateString) {
 }
 
 function getCycleDays(startDate, endDate) {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.floor((parseDateOnly(endDate) - parseDateOnly(startDate)) / DAY_MS) + 1;
 }
 
-function isFutureDate(dateString) {
-  return dateString > getToday();
+function isFutureDate(dateString, timeZone) {
+  return dateString > getToday(timeZone);
 }
 
 module.exports = {

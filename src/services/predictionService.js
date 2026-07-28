@@ -1,120 +1,156 @@
 const DEFAULT_CYCLE_LENGTH = 28;
 const DEFAULT_PERIOD_LENGTH = 5;
+const MIN_CYCLE_LENGTH = 15;
+const MAX_CYCLE_LENGTH = 60;
+const MAX_HISTORY_INTERVALS = 12;
 
-const MIN_CYCLE_LENGTH = 21;
-const MAX_CYCLE_LENGTH = 45;
+function parseDateOnly(value) {
+  const [year, month, day] = value.split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+function formatDateOnly(timestamp) {
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
 
 function daysBetween(startDate, endDate) {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  return Math.round((end - start) / (1000 * 60 * 60 * 24));
+  return Math.round((parseDateOnly(endDate) - parseDateOnly(startDate)) / 86400000);
 }
 
 function addDays(dateString, days) {
-  const date = new Date(dateString);
-  date.setDate(date.getDate() + days);
+  return formatDateOnly(parseDateOnly(dateString) + days * 86400000);
+}
 
-  return date.toISOString().slice(0, 10);
+function median(numbers, fallback) {
+  if (!numbers.length) return fallback;
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  const value = sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+  return Math.round(value);
+}
+
+function standardDeviation(numbers) {
+  if (numbers.length < 2) return 0;
+  const mean = numbers.reduce((sum, value) => sum + value, 0) / numbers.length;
+  const variance = numbers.reduce((sum, value) => sum + (value - mean) ** 2, 0) / numbers.length;
+  return Math.sqrt(variance);
 }
 
 function calculateCycleLengths(cycles) {
   const sortedCycles = [...cycles]
     .filter((cycle) => cycle.period_start)
-    .sort((a, b) => new Date(a.period_start) - new Date(b.period_start));
+    .sort((a, b) => a.period_start.localeCompare(b.period_start));
 
-  const lengths = [];
-
-  for (let i = 0; i < sortedCycles.length - 1; i++) {
-    const currentStart = sortedCycles[i].period_start;
-    const nextStart = sortedCycles[i + 1].period_start;
-
-    const length = daysBetween(currentStart, nextStart);
-    lengths.push(length);
-  }
-
-  return lengths;
+  return sortedCycles.slice(1).map((cycle, index) => ({
+    days: daysBetween(sortedCycles[index].period_start, cycle.period_start),
+    from: sortedCycles[index].period_start,
+    to: cycle.period_start,
+  }));
 }
 
 function filterOutliers(lengths) {
-  return lengths.filter(
-    (length) => length >= MIN_CYCLE_LENGTH && length <= MAX_CYCLE_LENGTH,
-  );
+  return lengths.filter((length) => {
+    const value = typeof length === "number" ? length : length.days;
+    return value >= MIN_CYCLE_LENGTH && value <= MAX_CYCLE_LENGTH;
+  });
 }
 
-function calculateAverage(numbers, fallback) {
-  if (!numbers.length) return fallback;
-
-  const sum = numbers.reduce((acc, number) => acc + number, 0);
-  return Math.round(sum / numbers.length);
-}
-
-function calculateAveragePeriodLength(
-  cycles,
-  fallback = DEFAULT_PERIOD_LENGTH,
-) {
+function calculateAveragePeriodLength(cycles, fallback = DEFAULT_PERIOD_LENGTH) {
   const periodLengths = cycles
     .filter((cycle) => cycle.period_start && cycle.period_end)
     .map((cycle) => daysBetween(cycle.period_start, cycle.period_end) + 1)
-    .filter((length) => length >= 1 && length <= 10);
+    .filter((length) => length >= 1 && length <= 14)
+    .slice(-MAX_HISTORY_INTERVALS);
 
-  return calculateAverage(periodLengths, fallback);
+  return median(periodLengths, fallback);
 }
 
-function getConfidence(cyclesUsed) {
-  if (cyclesUsed === 0) return "низкая";
-  if (cyclesUsed < 3) return "средняя";
+function getConfidence(cyclesUsed, variabilityDays, hasPossibleMissingEntries) {
+  if (cyclesUsed === 0) return "preliminary";
+  if (hasPossibleMissingEntries) return "limited";
+  if (cyclesUsed < 3) return "low";
+  if (variabilityDays > 4) return "limited";
+  if (cyclesUsed < 6) return "medium";
+  return "improved";
+}
 
-  return "высокая";
+function getUncertaintyDays(cyclesUsed, variabilityDays) {
+  if (cyclesUsed === 0) return 4;
+  if (cyclesUsed < 3) return Math.max(3, Math.ceil(variabilityDays));
+  return Math.min(10, Math.max(2, Math.ceil(variabilityDays * 1.5)));
 }
 
 function predictCycle(cycles, user = {}) {
-  if (!cycles || cycles.length === 0) {
-    return null;
-  }
+  if (!cycles?.length) return null;
 
   const sortedCycles = [...cycles]
     .filter((cycle) => cycle.period_start)
-    .sort((a, b) => new Date(a.period_start) - new Date(b.period_start));
-
-  if (!sortedCycles.length) {
-    return null;
-  }
+    .sort((a, b) => a.period_start.localeCompare(b.period_start));
+  if (!sortedCycles.length) return null;
 
   const lastCycle = sortedCycles[sortedCycles.length - 1];
+  const allIntervals = calculateCycleLengths(sortedCycles);
+  const validIntervals = filterOutliers(allIntervals).slice(-MAX_HISTORY_INTERVALS);
+  const validLengths = validIntervals.map((item) => item.days);
+  const possibleMissingEntries = allIntervals.filter((item) => item.days > MAX_CYCLE_LENGTH);
 
-  const cycleLengths = calculateCycleLengths(sortedCycles);
-  const validCycleLengths = filterOutliers(cycleLengths);
-
-  const averageCycleLength = calculateAverage(
-    validCycleLengths,
+  const typicalCycleLength = median(
+    validLengths,
     user.cycle_length || DEFAULT_CYCLE_LENGTH,
   );
-
-  const averagePeriodLength = calculateAveragePeriodLength(
+  const typicalPeriodLength = calculateAveragePeriodLength(
     sortedCycles,
     user.period_length || DEFAULT_PERIOD_LENGTH,
   );
+  const variabilityDays = Number(standardDeviation(validLengths).toFixed(1));
+  const uncertaintyDays = getUncertaintyDays(validLengths.length, variabilityDays);
 
-  const nextPeriodStart = addDays(lastCycle.period_start, averageCycleLength);
-  const nextPeriodEnd = addDays(nextPeriodStart, averagePeriodLength - 1);
+  const nextPeriodStart = addDays(lastCycle.period_start, typicalCycleLength);
+  const nextPeriodStartRangeStart = addDays(nextPeriodStart, -uncertaintyDays);
+  const nextPeriodStartRangeEnd = addDays(nextPeriodStart, uncertaintyDays);
+  const nextPeriodEnd = addDays(nextPeriodStart, typicalPeriodLength - 1);
+  const nextPeriodEndRangeStart = addDays(nextPeriodStartRangeStart, typicalPeriodLength - 1);
+  const nextPeriodEndRangeEnd = addDays(nextPeriodStartRangeEnd, typicalPeriodLength - 1);
 
-  const ovulationDate = addDays(nextPeriodStart, -14);
-  const fertileWindowStart = addDays(ovulationDate, -5);
-  const fertileWindowEnd = addDays(ovulationDate, 1);
+  const canEstimateOvulation = validLengths.length >= 3 && variabilityDays <= 4;
+  const ovulationDate = canEstimateOvulation ? addDays(nextPeriodStart, -14) : null;
+  const ovulationWindowStart = canEstimateOvulation
+    ? addDays(nextPeriodStartRangeStart, -16)
+    : null;
+  const ovulationWindowEnd = canEstimateOvulation
+    ? addDays(nextPeriodStartRangeEnd, -12)
+    : null;
+  const fertileWindowStart = canEstimateOvulation ? addDays(ovulationWindowStart, -5) : null;
+  const fertileWindowEnd = canEstimateOvulation ? addDays(ovulationWindowEnd, 1) : null;
 
   return {
     lastPeriodStart: lastCycle.period_start,
     lastPeriodEnd: lastCycle.period_end,
-    averageCycleLength,
-    averagePeriodLength,
+    averageCycleLength: typicalCycleLength,
+    averagePeriodLength: typicalPeriodLength,
     nextPeriodStart,
+    nextPeriodStartRangeStart,
+    nextPeriodStartRangeEnd,
     nextPeriodEnd,
+    nextPeriodEndRangeStart,
+    nextPeriodEndRangeEnd,
     ovulationDate,
+    ovulationWindowStart,
+    ovulationWindowEnd,
     fertileWindowStart,
     fertileWindowEnd,
-    cyclesUsed: validCycleLengths.length,
-    confidence: getConfidence(validCycleLengths.length),
+    cyclesUsed: validLengths.length,
+    variabilityDays,
+    uncertaintyDays,
+    isVariable: variabilityDays > 4,
+    possibleMissingEntries: possibleMissingEntries.length,
+    confidence: getConfidence(
+      validLengths.length,
+      variabilityDays,
+      possibleMissingEntries.length > 0,
+    ),
   };
 }
 
@@ -123,4 +159,8 @@ module.exports = {
   calculateCycleLengths,
   filterOutliers,
   calculateAveragePeriodLength,
+  daysBetween,
+  addDays,
+  median,
+  standardDeviation,
 };

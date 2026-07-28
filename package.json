@@ -7,8 +7,10 @@
     "start": "node index.js",
     "start:dev": "DOTENV_CONFIG_PATH=.env.local node -r dotenv/config index.js",
     "check": "node --check index.js && node --check test-db.js && find src -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "test:kakao": "DOTENV_CONFIG_PATH=.env.local node -r dotenv/config test-kakao.js",
+    "test:prediction": "node test-prediction.js",
     "test:db": "DOTENV_CONFIG_PATH=.env.local node test-db.js",
-    "test": "npm run check && npm run test:db"
+    "test": "npm run check && npm run test:prediction && npm run test:kakao && npm run test:db"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +18,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
     "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "node-cron": "^4.5.0",
     "telegraf": "^4.16.3"
   }

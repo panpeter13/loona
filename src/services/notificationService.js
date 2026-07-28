@@ -1,26 +1,13 @@
 const supabase = require("../database/supabase");
+const { getToday } = require("../utils/dateUtils");
+const { daysBetween, predictCycle } = require("./predictionService");
 const notificationCopy = {
-  ru: { coming: (d) => `🌙 Следующий период может начаться примерно через 3 дня.\n\nОжидаемая дата: ${d}`, today: "🌙 Сегодня ожидаемая дата начала нового цикла.\n\nЕсли он начался, отметьте начало в LOONA.", late: "📅 Новый цикл пока не отмечен.\n\nЕсли он уже начался, отметьте дату начала, чтобы LOONA точнее считала прогноз.", end: "🩸 Обычно период длится около 5 дней.\n\nЕсли он уже завершился, не забудьте отметить окончание ✅" },
-  en: { coming: (d) => `🌙 Your next period may start in about 3 days.\n\nEstimated date: ${d}`, today: "🌙 Your next cycle is expected to start today.\n\nIf it has started, record it in LOONA.", late: "📅 A new cycle has not been recorded yet.\n\nIf it has started, save the start date to improve future estimates.", end: "🩸 A period commonly lasts around 5 days.\n\nIf it has ended, remember to record the end date ✅" },
-  ko: { coming: (d) => `🌙 약 3일 후 다음 생리가 시작될 수 있어요.\n\n예상일: ${d}`, today: "🌙 오늘은 다음 주기의 예상 시작일이에요.\n\n시작됐다면 LOONA에 기록해 주세요.", late: "📅 아직 새 주기가 기록되지 않았어요.\n\n이미 시작됐다면 더 정확한 예측을 위해 시작일을 기록해 주세요.", end: "🩸 생리는 보통 약 5일간 지속돼요.\n\n끝났다면 종료일을 기록해 주세요 ✅" },
+  ru: { coming: (a, b) => `🌙 Приближается прогнозируемый диапазон нового цикла.\n\nОжидаемый диапазон: ${a} — ${b}`, today: "🌙 Сегодня наиболее вероятная дата начала нового цикла.\n\nЕсли он начался, отметьте начало в LOONA.", late: "📅 Прогнозируемый диапазон уже закончился, а новый цикл пока не отмечен.\n\nЕсли он начался, сохраните дату начала. При заметной задержке или беспокойстве обратитесь к врачу.", end: "🩸 Если период уже завершился, не забудьте отметить окончание ✅" },
+  en: { coming: (a, b) => `🌙 The estimated range for your next cycle is approaching.\n\nEstimated range: ${a} — ${b}`, today: "🌙 Today is the most likely start date for your next cycle.\n\nIf it has started, record it in LOONA.", late: "📅 The estimated range has ended and a new cycle has not been recorded.\n\nSave the start date if it began. If a delay concerns you, contact a healthcare professional.", end: "🩸 If your period has ended, remember to record the end date ✅" },
+  ko: { coming: (a, b) => `🌙 다음 주기의 예상 범위가 가까워지고 있어요.\n\n예상 범위: ${a} — ${b}`, today: "🌙 오늘은 다음 주기의 가장 가능성 높은 시작일이에요.\n\n시작됐다면 LOONA에 기록해 주세요.", late: "📅 예상 범위가 지났지만 새 주기가 아직 기록되지 않았어요.\n\n시작됐다면 날짜를 저장해 주세요. 지연이 걱정되면 의료 전문가와 상담하세요.", end: "🩸 생리가 끝났다면 종료일을 기록해 주세요 ✅" },
 };
-const { predictCycle } = require("./predictionService");
-
-function formatDate(date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function daysBetween(date1, date2) {
-  const first = new Date(date1);
-  const second = new Date(date2);
-
-  return Math.floor((second - first) / (1000 * 60 * 60 * 24));
-}
 
 async function runNotifications(bot) {
-  const today = new Date();
-  const todayString = formatDate(today);
-
   const { data: openCycles, error } = await supabase
     .from("cycles")
     .select(
@@ -28,7 +15,8 @@ async function runNotifications(bot) {
       *,
       users (
         telegram_id,
-        language
+        language,
+        timezone
       )
     `,
     )
@@ -73,25 +61,28 @@ async function runNotifications(bot) {
 
     const prediction = predictCycle(cycles, user);
     const message = notificationCopy[user.language] || notificationCopy.ru;
+    const todayString = getToday(user.timezone);
 
     if (!prediction) {
       continue;
     }
 
-    const daysToNextPeriod = daysBetween(
+    const daysToRangeStart = daysBetween(
       todayString,
-      prediction.nextPeriodStart,
+      prediction.nextPeriodStartRangeStart,
     );
+    const daysToNextPeriod = daysBetween(todayString, prediction.nextPeriodStart);
+    const daysSinceRangeEnd = daysBetween(prediction.nextPeriodStartRangeEnd, todayString);
 
-    if (daysToNextPeriod === 3) {
-      const notificationType = `period_coming:${prediction.nextPeriodStart}`;
+    if (daysToRangeStart === 3) {
+      const notificationType = `period_coming:${prediction.nextPeriodStartRangeStart}`;
       const alreadySent = await wasNotificationSent(user.id, notificationType);
 
       if (!alreadySent) {
         try {
           await bot.telegram.sendMessage(
             user.telegram_id,
-            message.coming(prediction.nextPeriodStart),
+            message.coming(prediction.nextPeriodStartRangeStart, prediction.nextPeriodStartRangeEnd),
           );
 
           await saveNotification(user.id, notificationType);
@@ -119,8 +110,8 @@ async function runNotifications(bot) {
       }
     }
 
-    if (daysToNextPeriod <= -7) {
-      const notificationType = `period_late:${prediction.nextPeriodStart}`;
+    if (daysSinceRangeEnd === 7) {
+      const notificationType = `period_late:${prediction.nextPeriodStartRangeEnd}`;
       const alreadySent = await wasNotificationSent(user.id, notificationType);
 
       if (!alreadySent) {
@@ -139,9 +130,8 @@ async function runNotifications(bot) {
   }
 
   for (const cycle of openCycles) {
-    const startDate = new Date(cycle.period_start);
-
-    const daysOpen = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+    const userToday = getToday(cycle.users?.timezone);
+    const daysOpen = daysBetween(cycle.period_start, userToday);
 
     if (daysOpen >= 5) {
       const alreadySent = await wasNotificationSent(

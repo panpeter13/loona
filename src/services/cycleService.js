@@ -5,7 +5,7 @@ async function getLastCycle(userId) {
     .from("cycles")
     .select("*")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false })
+    .order("period_start", { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -18,7 +18,7 @@ async function getOpenCycle(userId) {
     .select("*")
     .eq("user_id", userId)
     .is("period_end", null)
-    .order("created_at", { ascending: false })
+    .order("period_start", { ascending: false })
     .limit(1)
     .maybeSingle();
 
