@@ -2,6 +2,7 @@ const QUICK_REPLIES = [
   ["주기 시작", "주기 시작"],
   ["생리 종료", "생리 종료"],
   ["내 주기", "내 주기"],
+  ["설정", "설정"],
   ["도움말", "도움말"],
   ["개인정보", "개인정보"],
 ];
@@ -30,4 +31,34 @@ function consentResponse() {
   );
 }
 
-module.exports = { response, consentResponse };
+function settingsResponse(user) {
+  return response(
+    `⚙️ 설정\n\n평균 주기: ${user.cycle_length || 28}일\n평균 생리 기간: ${user.period_length || 5}일\n시간대: ${user.timezone || "Asia/Seoul"}\n\n변경할 값을 선택해 주세요.`,
+    [
+      ["주기 28일", "주기 28일"],
+      ["주기 30일", "주기 30일"],
+      ["생리 5일", "생리 5일"],
+      ["생리 7일", "생리 7일"],
+      ["내 데이터 삭제", "내 데이터 삭제"],
+      ["메인 메뉴", "도움말"],
+    ],
+  );
+}
+
+function deleteConfirmationResponse() {
+  return response(
+    "정말 모든 데이터를 삭제할까요?\n\n프로필, 주기 기록, 증상, 알림 및 피드백이 영구적으로 삭제되며 복구할 수 없어요.",
+    [
+      ["영구 삭제", "데이터 완전 삭제"],
+      ["취소", "도움말"],
+    ],
+  );
+}
+
+module.exports = {
+  response,
+  consentResponse,
+  settingsResponse,
+  deleteConfirmationResponse,
+  QUICK_REPLIES,
+};

@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const logger = require("../utils/logger");
 const { handleKakaoSkill } = require("./skillHandler");
 
@@ -9,6 +10,10 @@ function createApp() {
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true, service: "loona", version: require("../../package.json").version });
+  });
+
+  app.get("/privacy", (_req, res) => {
+    res.sendFile(path.join(__dirname, "../../public/privacy.html"));
   });
 
   app.post("/kakao/skill", async (req, res) => {
