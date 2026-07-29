@@ -140,6 +140,7 @@ async function testSkillScenarios() {
   );
   assert.equal(changedLanguage, "en");
   assert.match(text(englishResult), /Hi, I’m LOONA/);
+  assert.equal(englishResult.template.quickReplies[0].label, "✨ Home");
   assert.equal(englishResult.template.quickReplies[0].messageText, "Home");
 
   let reopenedCycleId;
