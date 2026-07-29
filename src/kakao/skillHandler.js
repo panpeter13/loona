@@ -1,219 +1,261 @@
 const {
   response,
+  localizedResponse,
   consentResponse,
   settingsResponse,
   deleteConfirmationResponse,
+  languageResponse,
+  languageOf,
 } = require("./responses");
 const {
   getOrCreateKakaoUser,
   recordHealthDataConsent,
   updateCycleLength,
   updatePeriodLength,
+  updateLanguage,
 } = require("../services/userService");
 const {
+  getLastCycle,
   getOpenCycle,
   createCycle,
   closeCycle,
+  deleteCycle,
+  reopenCycle,
   getUserCycles,
 } = require("../services/cycleService");
 const { predictCycle } = require("../services/predictionService");
 const { formatPrediction } = require("../services/predictionText");
-const {
-  getToday,
-  parseDate,
-  isValidDate,
-  isFutureDate,
-} = require("../utils/dateUtils");
+const { getDashboardText } = require("../services/dashboardService");
+const { getToday, parseDate, isValidDate, isFutureDate } = require("../utils/dateUtils");
 const { deleteUserData } = require("../services/dataDeletionService");
 
-const WELCOME =
-  "안녕하세요, LOONA예요 🌙\n\n주기를 편안하고 안전하게 기록할 수 있도록 도와드려요.\n\n예측은 참고용이며 의료 조언이 아닙니다.";
-
-const HELP =
-  "LOONA 기능\n\n🌙 주기 시작 — 시작일 기록\n✅ 생리 종료 — 종료일 기록\n📅 내 주기 — 다음 생리일 예측\n⚙️ 설정 — 평균 주기와 생리 기간 변경\n🔒 개인정보 — 데이터 처리 안내\n🗑 내 데이터 삭제 — 모든 기록 삭제\n\n날짜를 직접 입력하려면 다음처럼 보내 주세요.\n주기 시작 2026-07-29\n생리 종료 2026-08-02";
+const TEXT = {
+  ru: {
+    welcome: "Здравствуйте! Я LOONA 🌙\n\nПомогу бережно и безопасно вести цикл.\n\nПрогноз приблизительный и не является медицинской рекомендацией.",
+    help: "LOONA умеет:\n\n🌙 Начать цикл — записать начало\n✅ Завершить — записать окончание\n✨ Главная — текущий статус\n📅 Мой цикл — прогноз периода и овуляции\n⚙️ Настройки — длина цикла и периода\n🌐 Язык — русский, English, 한국어\n↩️ Отменить запись — исправить ошибку\n🔒 Приватность — обработка данных\n🗑 Удалить данные — полное удаление\n\nМожно указать дату: Начать цикл 2026-07-29",
+    noUser: "Не удалось загрузить профиль. Попробуйте ещё раз.",
+    consentSaved: "Согласие сохранено. Теперь можно вести записи ✅",
+    dateFormat: "Проверьте формат даты. Пример: 2026-07-29",
+    future: "Будущую дату записать нельзя.",
+    openExists: (d) => `Уже есть открытая запись.\n\nНачало: ${d}`,
+    noOpen: "Нет открытой записи. Сначала отметьте начало 🌙",
+    startSaved: (d) => `Начало записано: ${d} 🌙`,
+    endSaved: (d) => `Окончание записано: ${d} ✅`,
+    beforeStart: (d) => `Окончание не может быть раньше начала (${d}).`,
+    noCycles: "Пока записей нет. Сначала отметьте начало цикла 🌙",
+    cycleRange: "Длина цикла должна быть от 15 до 60 дней.",
+    periodRange: "Длительность периода должна быть от 1 до 14 дней.",
+    deleted: "Все данные удалены. Спасибо, что пользовались LOONA.",
+    undoNone: "Нет записи, которую можно отменить.",
+    undoStart: (d) => `Последняя запись начала ${d} удалена ↩️`,
+    undoEnd: (d) => `Окончание ${d} отменено. Запись снова открыта ↩️`,
+    privacy: "🔒 Приватность\n\nLOONA хранит обезличенный идентификатор, настройки и даты цикла только для работы сервиса. Данные не продаются третьим лицам.",
+    about: "🌙 LOONA Beta 1.4.0\n\nНезависимый бот для бережного и приватного ведения цикла. Прогноз не является медицинской рекомендацией.",
+    unknown: "Выберите нужную функцию кнопкой ниже.",
+  },
+  en: {
+    welcome: "Hi, I’m LOONA 🌙\n\nI’ll help you track your cycle safely and comfortably.\n\nEstimates are approximate and are not medical advice.",
+    help: "LOONA can help with:\n\n🌙 Start cycle — save a start date\n✅ Finish — save an end date\n✨ Home — current status\n📅 My cycle — period and ovulation estimate\n⚙️ Settings — cycle and period length\n🌐 Language — Русский, English, 한국어\n↩️ Undo entry — correct a mistake\n🔒 Privacy — data information\n🗑 Delete data — permanently erase everything\n\nYou can include a date: Start cycle 2026-07-29",
+    noUser: "Could not load your profile. Please try again.",
+    consentSaved: "Consent saved. You can now track your cycle ✅",
+    dateFormat: "Check the date format. Example: 2026-07-29",
+    future: "A future date cannot be recorded.",
+    openExists: (d) => `There is already an open record.\n\nStart: ${d}`,
+    noOpen: "There is no open record. Save a start date first 🌙",
+    startSaved: (d) => `Start date saved: ${d} 🌙`,
+    endSaved: (d) => `End date saved: ${d} ✅`,
+    beforeStart: (d) => `The end date cannot be before the start (${d}).`,
+    noCycles: "No records yet. Save a cycle start first 🌙",
+    cycleRange: "Cycle length must be between 15 and 60 days.",
+    periodRange: "Period length must be between 1 and 14 days.",
+    deleted: "All data has been deleted. Thank you for using LOONA.",
+    undoNone: "There is no entry to undo.",
+    undoStart: (d) => `The latest start entry (${d}) was deleted ↩️`,
+    undoEnd: (d) => `The end date (${d}) was undone. The record is open again ↩️`,
+    privacy: "🔒 Privacy\n\nLOONA stores an anonymized identifier, settings, and cycle dates only to provide the service. Data is not sold to third parties.",
+    about: "🌙 LOONA Beta 1.4.0\n\nAn independent, privacy-minded cycle tracking bot. Estimates are not medical advice.",
+    unknown: "Choose a function using the buttons below.",
+  },
+  ko: {
+    welcome: "안녕하세요, LOONA예요 🌙\n\n주기를 편안하고 안전하게 기록할 수 있도록 도와드려요.\n\n예측은 참고용이며 의료 조언이 아닙니다.",
+    help: "LOONA 기능\n\n🌙 주기 시작 — 시작일 기록\n✅ 생리 종료 — 종료일 기록\n✨ 홈 — 현재 상태\n📅 내 주기 — 생리 및 배란일 예측\n⚙️ 설정 — 주기와 생리 기간\n🌐 언어 — Русский, English, 한국어\n↩️ 최근 기록 취소 — 잘못된 기록 수정\n🔒 개인정보 — 데이터 처리 안내\n🗑 내 데이터 삭제 — 모든 기록 삭제\n\n날짜 입력 예: 주기 시작 2026-07-29",
+    noUser: "프로필을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+    consentSaved: "동의가 저장됐어요. 이제 주기를 기록할 수 있어요 ✅",
+    dateFormat: "날짜 형식을 확인해 주세요. 예: 2026-07-29",
+    future: "미래 날짜는 기록할 수 없어요.",
+    openExists: (d) => `이미 진행 중인 기록이 있어요.\n\n시작일: ${d}`,
+    noOpen: "진행 중인 기록이 없어요. 먼저 시작일을 기록해 주세요 🌙",
+    startSaved: (d) => `시작일을 기록했어요: ${d} 🌙`,
+    endSaved: (d) => `종료일을 기록했어요: ${d} ✅`,
+    beforeStart: (d) => `종료일은 시작일(${d})보다 빠를 수 없어요.`,
+    noCycles: "아직 기록이 없어요. 주기 시작일을 먼저 기록해 주세요 🌙",
+    cycleRange: "주기는 15일부터 60일 사이로 설정해 주세요.",
+    periodRange: "생리 기간은 1일부터 14일 사이로 설정해 주세요.",
+    deleted: "모든 데이터가 삭제됐어요. LOONA를 이용해 주셔서 감사합니다.",
+    undoNone: "취소할 기록이 없어요.",
+    undoStart: (d) => `최근 시작 기록(${d})을 삭제했어요 ↩️`,
+    undoEnd: (d) => `종료일(${d})을 취소했어요. 기록이 다시 열렸어요 ↩️`,
+    privacy: "🔒 개인정보 보호\n\nLOONA는 서비스 제공에 필요한 익명화된 식별자, 설정, 주기 날짜만 저장합니다. 데이터는 제3자에게 판매되지 않습니다.",
+    about: "🌙 LOONA Beta 1.4.0\n\n개인정보 보호를 중시하는 독립적인 주기 기록 봇이에요. 예측은 의료 조언이 아닙니다.",
+    unknown: "원하는 기능을 아래 버튼에서 선택해 주세요.",
+  },
+};
 
 const DEFAULT_DEPS = {
-  getOrCreateKakaoUser,
-  recordHealthDataConsent,
-  updateCycleLength,
-  updatePeriodLength,
-  getOpenCycle,
-  createCycle,
-  closeCycle,
-  getUserCycles,
-  predictCycle,
-  formatPrediction,
-  deleteUserData,
+  getOrCreateKakaoUser, recordHealthDataConsent, updateCycleLength,
+  updatePeriodLength, updateLanguage, getLastCycle, getOpenCycle, createCycle,
+  closeCycle, deleteCycle, reopenCycle, getUserCycles, predictCycle,
+  formatPrediction, getDashboardText, deleteUserData,
 };
 
 function getKakaoUserId(body) {
   return body?.userRequest?.user?.id || body?.userRequest?.user?.properties?.botUserKey;
 }
-
 function getUtterance(body) {
   return String(body?.userRequest?.utterance || body?.action?.name || "").trim();
 }
-
 function getActionParam(body, names) {
   for (const name of names) {
     const direct = body?.action?.params?.[name];
     if (direct) return String(direct).trim();
-
     const detail = body?.action?.detailParams?.[name];
-    const detailedValue = detail?.value || detail?.origin;
-    if (detailedValue) return String(detailedValue).trim();
+    if (detail?.value || detail?.origin) return String(detail.value || detail.origin).trim();
   }
   return null;
 }
-
-function getRequestedDate(body, utterance, command, timezone) {
-  const fromParam = getActionParam(body, [
-    "date",
-    "cycle_date",
-    "period_date",
-    "sys_date",
-  ]);
-  const fromText = utterance
-    .replace(command, "")
-    .trim()
+function requestedDate(body, utterance, commandPattern, timezone, c) {
+  const param = getActionParam(body, ["date", "cycle_date", "period_date", "sys_date"]);
+  const fromText = utterance.replace(commandPattern, "").trim()
     .match(/(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4})/)?.[1];
-  const rawDate = fromParam || fromText;
-
-  if (!rawDate) return { date: getToday(timezone) };
-
-  const date = parseDate(rawDate);
-  if (!date || !isValidDate(date)) {
-    return { error: "날짜 형식을 확인해 주세요. 예: 2026-07-29" };
-  }
-  if (isFutureDate(date, timezone)) {
-    return { error: "미래 날짜는 기록할 수 없어요." };
-  }
+  const raw = param || fromText;
+  if (!raw) return { date: getToday(timezone) };
+  const date = parseDate(raw);
+  if (!date || !isValidDate(date)) return { error: c.dateFormat };
+  if (isFutureDate(date, timezone)) return { error: c.future };
   return { date };
 }
-
-function getPrivacyText() {
+function command(utterance) {
+  const exact = new Map([
+    ["Главная", "home"], ["Home", "home"], ["홈", "home"],
+    ["Помощь", "help"], ["Help", "help"], ["도움말", "help"],
+    ["Мой цикл", "forecast"], ["My cycle", "forecast"], ["내 주기", "forecast"],
+    ["Настройки", "settings"], ["Settings", "settings"], ["설정", "settings"],
+    ["Язык", "language"], ["Language", "language"], ["언어", "language"],
+    ["Приватность", "privacy"], ["Privacy", "privacy"], ["개인정보", "privacy"],
+    ["О LOONA", "about"], ["About LOONA", "about"], ["LOONA 소개", "about"],
+    ["Отменить запись", "undo"], ["Undo entry", "undo"], ["최근 기록 취소", "undo"],
+    ["Удалить данные", "delete"], ["Delete data", "delete"], ["내 데이터 삭제", "delete"],
+    ["ПОЛНОЕ УДАЛЕНИЕ", "delete-confirm"], ["DELETE PERMANENTLY", "delete-confirm"], ["데이터 완전 삭제", "delete-confirm"],
+    ["Согласие на обработку", "consent"], ["Health data consent", "consent"], ["민감정보 처리 동의", "consent"],
+  ]);
+  if (exact.has(utterance)) return { name: exact.get(utterance) };
+  if (/^(Начать цикл|Start cycle|주기 시작)(?:\s|$)/i.test(utterance)) return { name: "start", pattern: /^(Начать цикл|Start cycle|주기 시작)/i };
+  if (/^(Завершить|Finish|생리 종료)(?:\s|$)/i.test(utterance)) return { name: "end", pattern: /^(Завершить|Finish|생리 종료)/i };
+  const setting = utterance.match(/^(?:Цикл|Cycle|주기)\s*(\d{2})(?:\s*(?:дн\.?|days?|일))?$/i);
+  if (setting) return { name: "cycle-length", value: Number(setting[1]) };
+  const period = utterance.match(/^(?:Период|Period|생리)\s*(\d{1,2})(?:\s*(?:дн\.?|days?|일))?$/i);
+  if (period) return { name: "period-length", value: Number(period[1]) };
+  return { name: "unknown" };
+}
+function privacyText(c) {
   const url = process.env.PRIVACY_POLICY_URL;
-  const link = url ? `\n\n개인정보 처리방침:\n${url}` : "";
-  return `🔒 개인정보 보호\n\nLOONA는 서비스 제공에 필요한 익명화된 사용자 식별자, 설정, 주기 날짜를 저장합니다. 데이터는 제3자에게 판매되지 않으며 설정에서 언제든지 삭제할 수 있습니다.${link}`;
+  return `${c.privacy}${url ? `\n\n${url}` : ""}`;
 }
 
 async function handleKakaoSkill(body, dependencies = {}) {
   const deps = { ...DEFAULT_DEPS, ...dependencies };
-  const kakaoUserId = getKakaoUserId(body);
-  if (!kakaoUserId) return response("사용자 정보를 확인할 수 없어요. 잠시 후 다시 시도해 주세요.");
-
-  const user = await deps.getOrCreateKakaoUser(kakaoUserId);
-  if (!user) return response("프로필을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
-
+  const id = getKakaoUserId(body);
+  if (!id) return response(TEXT.ko.noUser);
+  let user = await deps.getOrCreateKakaoUser(id);
+  if (!user) return response(TEXT.ko.noUser);
   const utterance = getUtterance(body);
+  const lang = languageOf(user);
+  const c = TEXT[lang];
 
-  if (utterance === "민감정보 처리 동의") {
+  const languageMatch = utterance.match(/^(?:Язык русский|Language English|언어 한국어)$/);
+  if (languageMatch) {
+    const language = utterance.includes("русский") ? "ru" : utterance.includes("English") ? "en" : "ko";
+    const { error } = await deps.updateLanguage(user.id, language);
+    if (!error) user = { ...user, language };
+    return localizedResponse(TEXT[language].welcome, user);
+  }
+  if (!utterance || /^(старт|start|시작|처음|안녕)$/i.test(utterance)) {
+    return localizedResponse(c.welcome, user);
+  }
+  const action = command(utterance);
+  if (action.name === "language") return languageResponse();
+  if (action.name === "help") return localizedResponse(c.help, user);
+  if (action.name === "privacy") return localizedResponse(privacyText(c), user);
+  if (action.name === "about") return localizedResponse(c.about, user);
+  if (action.name === "consent") {
     const { data, error } = await deps.recordHealthDataConsent(user.id);
-    return error || !data
-      ? response("동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.")
-      : response("동의가 저장됐어요. 이제 주기를 기록할 수 있어요 ✅");
+    return localizedResponse(error || !data ? c.noUser : c.consentSaved, user);
   }
-
-  if (!utterance || /^(시작|처음|안녕|도움말)$/i.test(utterance)) {
-    return response(utterance === "도움말" ? HELP : WELCOME);
+  if (action.name === "home") {
+    try { return localizedResponse(await deps.getDashboardText(user), user); }
+    catch { return localizedResponse(c.noUser, user); }
   }
-
-  if (/^주기 시작(?:\s|$)/.test(utterance)) {
-    if (!user.health_data_consent_at) return consentResponse();
-    const { data: openCycle, error } = await deps.getOpenCycle(user.id);
-    if (error) return response("현재 주기를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
-    if (openCycle) return response(`이미 진행 중인 기록이 있어요.\n\n시작일: ${openCycle.period_start}`);
-
-    const requested = getRequestedDate(body, utterance, "주기 시작", user.timezone);
-    if (requested.error) return response(requested.error);
-
+  if (action.name === "start") {
+    if (!user.health_data_consent_at) return consentResponse(user);
+    const { data: open, error } = await deps.getOpenCycle(user.id);
+    if (error) return localizedResponse(c.noUser, user);
+    if (open) return localizedResponse(c.openExists(open.period_start), user);
+    const requested = requestedDate(body, utterance, action.pattern, user.timezone, c);
+    if (requested.error) return localizedResponse(requested.error, user);
     const { error: createError } = await deps.createCycle(user, requested.date);
-    return createError
-      ? response("시작일을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.")
-      : response(`시작일을 기록했어요: ${requested.date} 🌙`);
+    return localizedResponse(createError ? c.noUser : c.startSaved(requested.date), user);
   }
-
-  if (/^생리 종료(?:\s|$)/.test(utterance)) {
-    if (!user.health_data_consent_at) return consentResponse();
-    const { data: openCycle, error } = await deps.getOpenCycle(user.id);
-    if (error) return response("현재 주기를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
-    if (!openCycle) return response("진행 중인 기록이 없어요. 먼저 시작일을 기록해 주세요 🌙");
-
-    const requested = getRequestedDate(body, utterance, "생리 종료", user.timezone);
-    if (requested.error) return response(requested.error);
-    if (requested.date < openCycle.period_start) {
-      return response(`종료일은 시작일(${openCycle.period_start})보다 빠를 수 없어요.`);
-    }
-
-    const { error: closeError } = await deps.closeCycle(openCycle.id, requested.date);
-    return closeError
-      ? response("종료일을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.")
-      : response(`종료일을 기록했어요: ${requested.date} ✅`);
+  if (action.name === "end") {
+    if (!user.health_data_consent_at) return consentResponse(user);
+    const { data: open, error } = await deps.getOpenCycle(user.id);
+    if (error) return localizedResponse(c.noUser, user);
+    if (!open) return localizedResponse(c.noOpen, user);
+    const requested = requestedDate(body, utterance, action.pattern, user.timezone, c);
+    if (requested.error) return localizedResponse(requested.error, user);
+    if (requested.date < open.period_start) return localizedResponse(c.beforeStart(open.period_start), user);
+    const { error: closeError } = await deps.closeCycle(open.id, requested.date);
+    return localizedResponse(closeError ? c.noUser : c.endSaved(requested.date), user);
   }
-
-  if (utterance === "내 주기") {
-    if (!user.health_data_consent_at) return consentResponse();
+  if (action.name === "forecast") {
+    if (!user.health_data_consent_at) return consentResponse(user);
     const { data: cycles, error } = await deps.getUserCycles(user.id);
-    if (error) return response("주기 데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
-    if (!cycles?.length) return response("아직 기록이 없어요. 주기 시작일을 먼저 기록해 주세요 🌙");
-
+    if (error) return localizedResponse(c.noUser, user);
+    if (!cycles?.length) return localizedResponse(c.noCycles, user);
     const prediction = deps.predictCycle(cycles, user);
-    if (!prediction) return response("예측을 만들 수 없어요. 기록을 다시 확인해 주세요.");
-
-    return response(deps.formatPrediction(prediction, "ko"));
+    return localizedResponse(prediction ? deps.formatPrediction(prediction, lang) : c.noUser, user);
   }
-
-  if (utterance === "설정") {
-    return settingsResponse(user);
+  if (action.name === "settings") return settingsResponse(user);
+  if (action.name === "cycle-length") {
+    if (action.value < 15 || action.value > 60) return localizedResponse(c.cycleRange, user);
+    const { error } = await deps.updateCycleLength(user.id, action.value);
+    return error ? localizedResponse(c.noUser, user) : settingsResponse({ ...user, cycle_length: action.value });
   }
-
-  const cycleLengthMatch = utterance.match(/^주기\s*(\d{2})일$/);
-  if (cycleLengthMatch) {
-    const value = Number(cycleLengthMatch[1]);
-    if (value < 15 || value > 60) return response("주기는 15일부터 60일 사이로 설정해 주세요.");
-    const { error } = await deps.updateCycleLength(user.id, value);
-    return error
-      ? response("주기 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.")
-      : settingsResponse({ ...user, cycle_length: value });
+  if (action.name === "period-length") {
+    if (action.value < 1 || action.value > 14) return localizedResponse(c.periodRange, user);
+    const { error } = await deps.updatePeriodLength(user.id, action.value);
+    return error ? localizedResponse(c.noUser, user) : settingsResponse({ ...user, period_length: action.value });
   }
-
-  const periodLengthMatch = utterance.match(/^생리\s*(\d{1,2})일$/);
-  if (periodLengthMatch) {
-    const value = Number(periodLengthMatch[1]);
-    if (value < 1 || value > 14) return response("생리 기간은 1일부터 14일 사이로 설정해 주세요.");
-    const { error } = await deps.updatePeriodLength(user.id, value);
-    return error
-      ? response("생리 기간 설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.")
-      : settingsResponse({ ...user, period_length: value });
+  if (action.name === "undo") {
+    const { data: last, error } = await deps.getLastCycle(user.id);
+    if (error) return localizedResponse(c.noUser, user);
+    if (!last) return localizedResponse(c.undoNone, user);
+    if (last.period_end) {
+      const { error: undoError } = await deps.reopenCycle(last.id);
+      return localizedResponse(undoError ? c.noUser : c.undoEnd(last.period_end), user);
+    }
+    const { error: undoError } = await deps.deleteCycle(last.id);
+    return localizedResponse(undoError ? c.noUser : c.undoStart(last.period_start), user);
   }
-
-  if (utterance === "내 데이터 삭제") {
-    return deleteConfirmationResponse();
-  }
-
-  if (utterance === "데이터 완전 삭제") {
+  if (action.name === "delete") return deleteConfirmationResponse(user);
+  if (action.name === "delete-confirm") {
     try {
       await deps.deleteUserData(user.id);
-      return response(
-        "모든 데이터가 삭제됐어요. LOONA를 이용해 주셔서 감사합니다.",
-        [["다시 시작", "시작"]],
-      );
-    } catch {
-      return response("데이터를 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.");
-    }
+      return localizedResponse(c.deleted, user, [["Start again", "start"]]);
+    } catch { return localizedResponse(c.noUser, user); }
   }
-
-  if (utterance === "개인정보") {
-    return response(getPrivacyText());
-  }
-
-  return response("원하는 기능을 아래 버튼에서 선택해 주세요.");
+  return localizedResponse(c.unknown, user);
 }
 
 module.exports = {
-  handleKakaoSkill,
-  getKakaoUserId,
-  getUtterance,
-  getActionParam,
-  getRequestedDate,
+  handleKakaoSkill, getKakaoUserId, getUtterance, getActionParam, command,
 };

@@ -31,15 +31,20 @@ function createDependencies(overrides = {}) {
     recordHealthDataConsent: async () => ({ data: { ...user }, error: null }),
     updateCycleLength: async () => ({ error: null }),
     updatePeriodLength: async () => ({ error: null }),
+    updateLanguage: async () => ({ error: null }),
+    getLastCycle: async () => ({ data: null, error: null }),
     getOpenCycle: async () => ({ data: null, error: null }),
     createCycle: async () => ({ error: null }),
     closeCycle: async () => ({ error: null }),
+    deleteCycle: async () => ({ error: null }),
+    reopenCycle: async () => ({ error: null }),
     getUserCycles: async () => ({
       data: [{ period_start: "2026-07-01", period_end: "2026-07-05" }],
       error: null,
     }),
     predictCycle: () => ({ ready: true }),
     formatPrediction: () => "예측 결과",
+    getDashboardText: async () => "홈 상태",
     deleteUserData: async () => {},
     ...overrides,
   };
@@ -122,6 +127,43 @@ async function testSkillScenarios() {
     createDependencies(),
   );
   assert.equal(text(predictionResult), "예측 결과");
+
+  let changedLanguage;
+  const englishResult = await handleKakaoSkill(
+    request("Language English"),
+    createDependencies({
+      updateLanguage: async (_userId, language) => {
+        changedLanguage = language;
+        return { error: null };
+      },
+    }),
+  );
+  assert.equal(changedLanguage, "en");
+  assert.match(text(englishResult), /Hi, I’m LOONA/);
+  assert.equal(englishResult.template.quickReplies[0].messageText, "Home");
+
+  let reopenedCycleId;
+  const undoEndResult = await handleKakaoSkill(
+    request("최근 기록 취소"),
+    createDependencies({
+      getLastCycle: async () => ({
+        data: { id: 9, period_start: "2026-07-01", period_end: "2026-07-05" },
+        error: null,
+      }),
+      reopenCycle: async (cycleId) => {
+        reopenedCycleId = cycleId;
+        return { error: null };
+      },
+    }),
+  );
+  assert.equal(reopenedCycleId, 9);
+  assert.match(text(undoEndResult), /다시 열렸어요/);
+
+  const dashboardResult = await handleKakaoSkill(
+    request("홈"),
+    createDependencies({ getDashboardText: async () => "LOONA dashboard" }),
+  );
+  assert.equal(text(dashboardResult), "LOONA dashboard");
 }
 
 async function run() {
