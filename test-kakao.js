@@ -184,6 +184,14 @@ async function testSkillScenarios() {
     createDependencies({ getDashboardText: async () => "LOONA dashboard" }),
   );
   assert.equal(text(dashboardResult), "LOONA dashboard");
+  assert.deepEqual(
+    dashboardResult.template.quickReplies.find((item) => item.label === "📰 소식"),
+    {
+      action: "webLink",
+      label: "📰 소식",
+      webLinkUrl: "https://pf.kakao.com/_xfltxnX/114199297",
+    },
+  );
 }
 
 async function run() {

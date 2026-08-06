@@ -1,3 +1,5 @@
+const NEWS_URL = "https://pf.kakao.com/_xfltxnX/114199297";
+
 const COPY = {
   ru: {
     quick: [
@@ -8,6 +10,7 @@ const COPY = {
       ["⚙️ Настройки", "Настройки"],
       ["❓ Помощь", "Помощь"],
       ["🌐 Язык", "Язык"],
+      { action: "webLink", label: "📰 Новости", webLinkUrl: NEWS_URL },
     ],
     consent:
       "Даты цикла могут относиться к чувствительным данным о здоровье. LOONA использует их только для ведения записей и прогноза. Ознакомьтесь с политикой конфиденциальности и подтвердите согласие.",
@@ -33,6 +36,7 @@ const COPY = {
       ["⚙️ Settings", "Settings"],
       ["❓ Help", "Help"],
       ["🌐 Language", "Language"],
+      { action: "webLink", label: "📰 News", webLinkUrl: NEWS_URL },
     ],
     consent:
       "Cycle dates may be sensitive health data. LOONA uses them only for cycle tracking and estimates. Please review the privacy policy and confirm your consent.",
@@ -58,6 +62,7 @@ const COPY = {
       ["⚙️ 설정", "설정"],
       ["❓ 도움말", "도움말"],
       ["🌐 언어", "언어"],
+      { action: "webLink", label: "📰 소식", webLinkUrl: NEWS_URL },
     ],
     consent:
       "주기 날짜는 건강 관련 민감정보에 해당할 수 있어요. LOONA는 주기 기록과 예측 제공을 위해서만 이 정보를 사용합니다. 개인정보 처리방침을 확인하고 처리에 동의해 주세요.",
@@ -87,11 +92,11 @@ function response(text, quickReplies) {
     version: "2.0",
     template: {
       outputs: [{ simpleText: { text } }],
-      quickReplies: (quickReplies || []).map(([label, messageText]) => ({
-        action: "message",
-        label,
-        messageText,
-      })),
+      quickReplies: (quickReplies || []).map((item) =>
+        Array.isArray(item)
+          ? { action: "message", label: item[0], messageText: item[1] }
+          : item,
+      ),
     },
   };
 }
