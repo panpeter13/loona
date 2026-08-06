@@ -179,6 +179,7 @@ async function handleKakaoSkill(body, dependencies = {}) {
     if (!error) user = { ...user, language };
     return localizedResponse(TEXT[language].welcome, user);
   }
+  if (user.language === "select") return languageResponse();
   if (!utterance || /^(старт|start|시작|처음|안녕)$/i.test(utterance)) {
     return localizedResponse(c.welcome, user);
   }

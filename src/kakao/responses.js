@@ -117,7 +117,7 @@ function deleteConfirmationResponse(userOrLanguage) {
 }
 
 function languageResponse() {
-  return response("🌐 Русский · English · 한국어", [
+  return response("🌐 언어를 선택해 주세요\nChoose your language\nВыберите язык", [
     ["Русский", "Язык русский"],
     ["English", "Language English"],
     ["한국어", "언어 한국어"],

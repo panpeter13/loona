@@ -77,7 +77,7 @@ async function getOrCreateKakaoUser(kakaoUserId) {
     .from("users")
     .insert({
       user_hash: userHash,
-      language: "ko",
+      language: "select",
       timezone: "Asia/Seoul",
       cycle_length: 28,
       period_length: 5,

@@ -51,6 +51,25 @@ function createDependencies(overrides = {}) {
 }
 
 async function testSkillScenarios() {
+  const firstVisit = await handleKakaoSkill(
+    request("안녕"),
+    createDependencies({
+      getOrCreateKakaoUser: async () => ({
+        id: 42,
+        language: "select",
+        timezone: "Asia/Seoul",
+        cycle_length: 28,
+        period_length: 5,
+        health_data_consent_at: null,
+      }),
+    }),
+  );
+  assert.match(text(firstVisit), /Choose your language/);
+  assert.deepEqual(
+    firstVisit.template.quickReplies.map((item) => item.messageText),
+    ["Язык русский", "Language English", "언어 한국어"],
+  );
+
   const withoutConsent = createDependencies({
     getOrCreateKakaoUser: async () => ({
       id: 42,
