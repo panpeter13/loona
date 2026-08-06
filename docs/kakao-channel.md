@@ -43,6 +43,8 @@ The `/kakao/skill` endpoint currently supports:
 - privacy information and a published-policy link;
 - two-step permanent account and health-data deletion;
 - Korean quick replies on every main response.
+- partner codes that work across Kakao and Telegram, with read-only partner access;
+- privacy-safe growth analytics that reports owners and partners separately.
 
 Proactive KakaoTalk reminders are **not** part of this Skill endpoint. They require
 a separate approved Kakao messaging product such as AlimTalk and must not be
@@ -68,6 +70,10 @@ Create the following blocks and connect all of them to the same Skill:
 | Sensitive-data consent | 민감정보 처리 동의 | none |
 | Request deletion | 내 데이터 삭제 | none |
 | Confirm deletion | 데이터 완전 삭제 | none |
+| Partner menu | 파트너 | none |
+| Own profile code | 파트너: 내 프로필 | none |
+| Connect partner | 파트너: 연결 | none |
+| Enter partner code | 파트너 코드 ABC123 | none |
 
 For the two date blocks, name the Skill parameter exactly `date`. The backend
 also accepts `cycle_date`, `period_date`, or `sys_date`, but using one documented
@@ -116,3 +122,5 @@ reports.
 - Test settings and permanent deletion against a non-production test account.
 - Confirm prediction responses fit Kakao's response limits in the Open Builder test console.
 - Test every block in the development channel before connecting the operating channel.
+- Run `/analytics` from the admin Telegram account and confirm Kakao owners and partners are separated.
+- Complete the checklist in `docs/kakao-ad-launch-kit.md` before funding a campaign.

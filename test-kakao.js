@@ -49,6 +49,11 @@ function createDependencies(overrides = {}) {
     enablePersonalMode: async () => ({ error: null, partnerCode: "ABC123" }),
     enablePartnerMode: async () => ({ error: null }),
     connectPartner: async () => ({ error: null }),
+    trackEvent: async () => {},
+    markActive: async () => {},
+    markOnboardingComplete: async () => ({ error: null }),
+    markFirstCycle: async () => ({ error: null }),
+    saveAttribution: async () => ({ error: null }),
     ...overrides,
   };
 }
@@ -218,6 +223,16 @@ async function testSkillScenarios() {
     }),
   }));
   assert.match(text(readOnly), /변경할 수 없으며/);
+
+  let savedAttribution;
+  const attributedStart = await handleKakaoSkill(request("시작 ad_kr_cycle_care_a"), createDependencies({
+    saveAttribution: async (_user, source, campaign) => {
+      savedAttribution = { source, campaign };
+      return { error: null };
+    },
+  }));
+  assert.deepEqual(savedAttribution, { source: "kakao_moment", campaign: "kr_cycle_care_a" });
+  assert.match(text(attributedStart), /안녕하세요/);
 }
 
 async function run() {

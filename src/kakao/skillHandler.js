@@ -30,6 +30,9 @@ const { getDashboardText } = require("../services/dashboardService");
 const { getToday, parseDate, isValidDate, isFutureDate } = require("../utils/dateUtils");
 const { deleteUserData } = require("../services/dataDeletionService");
 const { enablePersonalMode, enablePartnerMode, connectPartner } = require("../services/partnerService");
+const {
+  trackEvent, markActive, markOnboardingComplete, markFirstCycle, saveAttribution,
+} = require("../services/analyticsService");
 
 const TEXT = {
   ru: {
@@ -130,6 +133,7 @@ const DEFAULT_DEPS = {
   closeCycle, deleteCycle, reopenCycle, getUserCycles, predictCycle,
   formatPrediction, getDashboardText, deleteUserData,
   enablePersonalMode, enablePartnerMode, connectPartner,
+  trackEvent, markActive, markOnboardingComplete, markFirstCycle, saveAttribution,
 };
 
 function getKakaoUserId(body) {
@@ -146,6 +150,15 @@ function getActionParam(body, names) {
     if (detail?.value || detail?.origin) return String(detail.value || detail.origin).trim();
   }
   return null;
+}
+function getAttribution(body, utterance) {
+  const source = getActionParam(body, ["utm_source", "source"]);
+  const campaign = getActionParam(body, ["utm_campaign", "campaign"]);
+  const marker = utterance.match(/(?:^|\s)ad[_-]([a-z0-9_-]{1,40})$/i)?.[1];
+  return {
+    source: source || (marker ? "kakao_moment" : null),
+    campaign: campaign || marker || null,
+  };
 }
 function requestedDate(body, utterance, commandPattern, timezone, c) {
   const param = getActionParam(body, ["date", "cycle_date", "period_date", "sys_date"]);
@@ -199,6 +212,12 @@ async function handleKakaoSkill(body, dependencies = {}) {
   let user = await deps.getOrCreateKakaoUser(id);
   if (!user) return response(TEXT.ko.noUser);
   const utterance = getUtterance(body);
+  const attribution = getAttribution(body, utterance);
+  await deps.markActive(user.id);
+  if (attribution.source || attribution.campaign) {
+    await deps.saveAttribution(user, attribution.source, attribution.campaign);
+  }
+  if (user._isNew) await deps.trackEvent(user, "signup", attribution);
   const lang = languageOf(user);
   const c = TEXT[lang];
 
@@ -207,10 +226,14 @@ async function handleKakaoSkill(body, dependencies = {}) {
     const language = utterance.includes("русский") ? "ru" : utterance.includes("English") ? "en" : "ko";
     const { error } = await deps.updateLanguage(user.id, language);
     if (!error) user = { ...user, language };
+    if (!error) {
+      await deps.markOnboardingComplete(user.id);
+      await deps.trackEvent(user, "onboarding_completed", attribution);
+    }
     return localizedResponse(TEXT[language].welcome, user);
   }
   if (user.language === "select") return languageResponse();
-  if (!utterance || /^(старт|start|시작|처음|안녕)$/i.test(utterance)) {
+  if (!utterance || /^(старт|start|시작|처음|안녕)(?:\s+ad[_-][a-z0-9_-]{1,40})?$/i.test(utterance)) {
     return localizedResponse(c.welcome, user);
   }
   const action = command(utterance);
@@ -221,6 +244,7 @@ async function handleKakaoSkill(body, dependencies = {}) {
     const { error, partnerCode } = await deps.enablePersonalMode(user);
     if (error) return localizedResponse(c.noUser, user);
     user = { ...user, mode: "female", linked_user_id: null, partner_code: partnerCode };
+    await deps.trackEvent(user, "partner_code_created", attribution);
     return localizedResponse(c.ownMode(partnerCode), user);
   }
   if (action.name === "partner-connect") {
@@ -235,6 +259,7 @@ async function handleKakaoSkill(body, dependencies = {}) {
     if (result.notFound) return localizedResponse(c.codeMissing, user);
     if (result.self) return localizedResponse(c.selfLink, user);
     user = { ...user, mode: "partner", linked_user_id: true };
+    await deps.trackEvent(user, "partner_connected", attribution);
     return localizedResponse(c.linked, user);
   }
   if (user.mode === "partner" && ["start", "end", "settings", "cycle-length", "period-length", "undo"].includes(action.name)) {
@@ -259,6 +284,13 @@ async function handleKakaoSkill(body, dependencies = {}) {
     const requested = requestedDate(body, utterance, action.pattern, user.timezone, c);
     if (requested.error) return localizedResponse(requested.error, user);
     const { error: createError } = await deps.createCycle(user, requested.date);
+    if (!createError) {
+      await deps.trackEvent(user, "cycle_recorded", attribution);
+      if (!user.first_cycle_recorded_at) {
+        await deps.markFirstCycle(user.id);
+        await deps.trackEvent(user, "first_cycle_recorded", attribution);
+      }
+    }
     return localizedResponse(createError ? c.noUser : c.startSaved(requested.date), user);
   }
   if (action.name === "end") {

@@ -4,6 +4,7 @@ const {
 } = require("../services/feedbackService");
 const { getDatabaseHealth } = require("../services/healthService");
 const packageInfo = require("../../package.json");
+const { getGrowthSummary } = require("../services/analyticsService");
 
 function isAdmin(ctx) {
   const adminId = process.env.ADMIN_TELEGRAM_ID || process.env.ADMIN_ID;
@@ -74,6 +75,26 @@ function registerAdminHandler(bot) {
           },
         },
       );
+    }
+  });
+
+  bot.command("analytics", async (ctx) => {
+    if (!isAdmin(ctx)) return ctx.reply("Команда недоступна.");
+    try {
+      const s = await getGrowthSummary();
+      const activation = s.kakaoOwners ? Math.round((s.activated / s.kakaoOwners) * 100) : 0;
+      return ctx.reply(
+        `📊 LOONA — воронка Kakao\n\n` +
+        `Основные пользователи: ${s.kakaoOwners}\n` +
+        `Записали первый цикл: ${s.activated} (${activation}%)\n` +
+        `Активны за 7 дней: ${s.active7d}\n` +
+        `Партнёры: ${s.kakaoPartners}\n` +
+        `Plus: ${s.paid}\n\n` +
+        `Telegram (основные): ${s.telegramOwners}`,
+      );
+    } catch (error) {
+      console.log("Ошибка аналитики:", error);
+      return ctx.reply("Не получилось загрузить аналитику.");
     }
   });
 

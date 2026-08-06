@@ -42,6 +42,7 @@ async function getOrCreateUser(telegramId) {
     .insert({
       user_hash: userHash,
       telegram_id: telegramId,
+      platform: "telegram",
       language: "ru",
       cycle_length: 28,
       period_length: 5,
@@ -71,12 +72,13 @@ async function getOrCreateKakaoUser(kakaoUserId) {
     return null;
   }
 
-  if (existingUser) return existingUser;
+  if (existingUser) return { ...existingUser, _isNew: false };
 
   const { data: newUser, error: insertError } = await supabase
     .from("users")
     .insert({
       user_hash: userHash,
+      platform: "kakao",
       language: "select",
       timezone: "Asia/Seoul",
       cycle_length: 28,
@@ -90,7 +92,7 @@ async function getOrCreateKakaoUser(kakaoUserId) {
     return null;
   }
 
-  return newUser;
+  return { ...newUser, _isNew: true };
 }
 
 async function updateCycleLength(userId, value) {
