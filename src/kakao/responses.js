@@ -9,7 +9,9 @@ const COPY = {
       ["❓ Помощь", "Помощь"],
       ["🌐 Язык", "Язык"],
       ["📰 Новости", "Новости"],
+      ["🤝 Партнёр", "Партнёр"],
     ],
+    partnerQuick: [["✨ Статус", "Главная"], ["🤝 Партнёр", "Партнёр"], ["🌐 Язык", "Язык"], ["📰 Новости", "Новости"], ["❓ Помощь", "Помощь"]],
     consent:
       "Даты цикла могут относиться к чувствительным данным о здоровье. LOONA использует их только для ведения записей и прогноза. Ознакомьтесь с политикой конфиденциальности и подтвердите согласие.",
     consentButtons: [["Согласна", "Согласие на обработку"], ["Политика", "Приватность"]],
@@ -35,7 +37,9 @@ const COPY = {
       ["❓ Help", "Help"],
       ["🌐 Language", "Language"],
       ["📰 News", "News"],
+      ["🤝 Partner", "Partner"],
     ],
+    partnerQuick: [["✨ Status", "Home"], ["🤝 Partner", "Partner"], ["🌐 Language", "Language"], ["📰 News", "News"], ["❓ Help", "Help"]],
     consent:
       "Cycle dates may be sensitive health data. LOONA uses them only for cycle tracking and estimates. Please review the privacy policy and confirm your consent.",
     consentButtons: [["I agree", "Health data consent"], ["Privacy policy", "Privacy"]],
@@ -61,7 +65,9 @@ const COPY = {
       ["❓ 도움말", "도움말"],
       ["🌐 언어", "언어"],
       ["📰 소식", "소식"],
+      ["🤝 파트너", "파트너"],
     ],
+    partnerQuick: [["✨ 상태", "홈"], ["🤝 파트너", "파트너"], ["🌐 언어", "언어"], ["📰 소식", "소식"], ["❓ 도움말", "도움말"]],
     consent:
       "주기 날짜는 건강 관련 민감정보에 해당할 수 있어요. LOONA는 주기 기록과 예측 제공을 위해서만 이 정보를 사용합니다. 개인정보 처리방침을 확인하고 처리에 동의해 주세요.",
     consentButtons: [["동의합니다", "민감정보 처리 동의"], ["개인정보 처리방침", "개인정보"]],
@@ -101,7 +107,10 @@ function response(text, quickReplies) {
 
 function localizedResponse(text, userOrLanguage, quickReplies) {
   const language = languageOf(userOrLanguage);
-  return response(text, quickReplies || COPY[language].quick);
+  const partnerQuick = typeof userOrLanguage === "object" && userOrLanguage?.mode === "partner"
+    ? COPY[language].partnerQuick
+    : COPY[language].quick;
+  return response(text, quickReplies || partnerQuick);
 }
 
 function consentResponse(userOrLanguage) {
@@ -127,6 +136,16 @@ function languageResponse() {
   ]);
 }
 
+function partnerModeResponse(userOrLanguage) {
+  const language = languageOf(userOrLanguage);
+  const content = {
+    ru: { text: "🤝 Партнёрский режим\n\nВыберите: вести свой цикл и получить код или подключиться по коду партнёра.", buttons: [["🌙 Мой профиль", "Партнёр: мой профиль"], ["🤝 Ввести код", "Партнёр: подключиться"]] },
+    en: { text: "🤝 Partner mode\n\nChoose whether to track your own cycle and get a code, or connect using your partner’s code.", buttons: [["🌙 My profile", "Partner: my profile"], ["🤝 Enter code", "Partner: connect"]] },
+    ko: { text: "🤝 파트너 모드\n\n내 주기를 기록하고 코드를 받거나, 파트너의 코드로 연결할 수 있어요.", buttons: [["🌙 내 프로필", "파트너: 내 프로필"], ["🤝 코드 입력", "파트너: 연결"]] },
+  }[language];
+  return response(content.text, content.buttons);
+}
+
 module.exports = {
   COPY,
   response,
@@ -135,5 +154,6 @@ module.exports = {
   settingsResponse,
   deleteConfirmationResponse,
   languageResponse,
+  partnerModeResponse,
   languageOf,
 };

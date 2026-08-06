@@ -46,6 +46,9 @@ function createDependencies(overrides = {}) {
     formatPrediction: () => "예측 결과",
     getDashboardText: async () => "홈 상태",
     deleteUserData: async () => {},
+    enablePersonalMode: async () => ({ error: null, partnerCode: "ABC123" }),
+    enablePartnerMode: async () => ({ error: null }),
+    connectPartner: async () => ({ error: null }),
     ...overrides,
   };
 }
@@ -192,6 +195,29 @@ async function testSkillScenarios() {
   const newsResult = await handleKakaoSkill(request("소식"), createDependencies());
   assert.match(text(newsResult), /사랑과 정성/);
   assert.match(text(newsResult), /Tiếng Việt/);
+
+  const partnerMenu = await handleKakaoSkill(request("파트너"), createDependencies());
+  assert.match(text(partnerMenu), /파트너 모드/);
+  assert.deepEqual(partnerMenu.template.quickReplies.map((item) => item.messageText), ["파트너: 내 프로필", "파트너: 연결"]);
+
+  const ownProfile = await handleKakaoSkill(request("파트너: 내 프로필"), createDependencies());
+  assert.match(text(ownProfile), /ABC123/);
+
+  let connectedCode;
+  const linked = await handleKakaoSkill(request("파트너 코드 ZXCV12"), createDependencies({
+    connectPartner: async (_user, code) => { connectedCode = code; return { error: null }; },
+  }));
+  assert.equal(connectedCode, "ZXCV12");
+  assert.match(text(linked), /연결됐어요/);
+  assert.equal(linked.template.quickReplies.some((item) => item.messageText === "주기 시작"), false);
+
+  const readOnly = await handleKakaoSkill(request("주기 시작"), createDependencies({
+    getOrCreateKakaoUser: async () => ({
+      id: 42, language: "ko", timezone: "Asia/Seoul", mode: "partner",
+      linked_user_id: 99, health_data_consent_at: "2026-07-01T00:00:00.000Z",
+    }),
+  }));
+  assert.match(text(readOnly), /변경할 수 없으며/);
 }
 
 async function run() {

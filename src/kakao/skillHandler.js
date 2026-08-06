@@ -5,6 +5,7 @@ const {
   settingsResponse,
   deleteConfirmationResponse,
   languageResponse,
+  partnerModeResponse,
   languageOf,
 } = require("./responses");
 const {
@@ -28,11 +29,12 @@ const { formatPrediction } = require("../services/predictionText");
 const { getDashboardText } = require("../services/dashboardService");
 const { getToday, parseDate, isValidDate, isFutureDate } = require("../utils/dateUtils");
 const { deleteUserData } = require("../services/dataDeletionService");
+const { enablePersonalMode, enablePartnerMode, connectPartner } = require("../services/partnerService");
 
 const TEXT = {
   ru: {
     welcome: "Здравствуйте! Я LOONA 🌙\n\nПомогу бережно и безопасно вести цикл.\n\nПрогноз приблизительный и не является медицинской рекомендацией.",
-    help: "LOONA умеет:\n\n🌙 Начать цикл — записать начало\n✅ Завершить — записать окончание\n✨ Главная — текущий статус\n📅 Мой цикл — прогноз периода и овуляции\n⚙️ Настройки — длина цикла и периода\n🌐 Язык — русский, English, 한국어\n↩️ Отменить запись — исправить ошибку\n🔒 Приватность — обработка данных\n🗑 Удалить данные — полное удаление\n\nМожно указать дату: Начать цикл 2026-07-29",
+    help: "LOONA умеет:\n\n🌙 Начать цикл — записать начало\n✅ Завершить — записать окончание\n✨ Главная — текущий статус\n📅 Мой цикл — прогноз периода и овуляции\n🤝 Партнёр — подключить близкого по коду\n⚙️ Настройки — длина цикла и периода\n🌐 Язык — русский, English, 한국어\n↩️ Отменить запись — исправить ошибку\n🔒 Приватность — обработка данных\n🗑 Удалить данные — полное удаление\n\nМожно указать дату: Начать цикл 2026-07-29",
     news: "📰 Новости LOONA\n\nМы с любовью и заботой развиваем LOONA, уделяя особое внимание вашему комфорту, приватности и спокойствию 💜\n\nВ планах:\n• китайский и вьетнамский языки\n• бережные AI-пояснения\n• более персональные прогнозы\n• запись симптомов и самочувствия\n• удобные напоминания\n• экспорт, удаление данных и усиление защиты\n\nAI и прогнозы носят справочный характер и не заменяют врача.",
     noUser: "Не удалось загрузить профиль. Попробуйте ещё раз.",
     consentSaved: "Согласие сохранено. Теперь можно вести записи ✅",
@@ -52,6 +54,12 @@ const TEXT = {
     undoEnd: (d) => `Окончание ${d} отменено. Запись снова открыта ↩️`,
     privacy: "🔒 Приватность\n\nLOONA хранит обезличенный идентификатор, настройки и даты цикла только для работы сервиса. Данные не продаются третьим лицам.",
     about: "🌙 LOONA Beta 1.4.0\n\nНезависимый бот для бережного и приватного ведения цикла. Прогноз не является медицинской рекомендацией.",
+    ownMode: (code) => `Свой профиль включён 🌙\n\nКод для партнёра: ${code}\n\nЕго можно ввести в LOONA в Telegram или Kakao. Передавайте код только человеку, которому доверяете.`,
+    enterCode: "Введите код сообщением в формате: Код ABC123",
+    linked: "Готово 🤝 Вы подключены. Вам доступна только сводка цикла без личных заметок.",
+    codeMissing: "Код не найден. Проверьте его и попробуйте ещё раз.",
+    selfLink: "Нельзя подключить профиль к самому себе.",
+    partnerReadonly: "В режиме партнёра записи нельзя изменять. Вам доступна только бережная сводка.",
     unknown: "Выберите нужную функцию кнопкой ниже.",
   },
   en: {
@@ -76,6 +84,12 @@ const TEXT = {
     undoEnd: (d) => `The end date (${d}) was undone. The record is open again ↩️`,
     privacy: "🔒 Privacy\n\nLOONA stores an anonymized identifier, settings, and cycle dates only to provide the service. Data is not sold to third parties.",
     about: "🌙 LOONA Beta 1.4.0\n\nAn independent, privacy-minded cycle tracking bot. Estimates are not medical advice.",
+    ownMode: (code) => `Personal profile enabled 🌙\n\nPartner code: ${code}\n\nIt can be entered in LOONA on Telegram or Kakao. Share it only with someone you trust.`,
+    enterCode: "Send the code in this format: Code ABC123",
+    linked: "Connected 🤝 You can only see the cycle summary, without private notes.",
+    codeMissing: "Code not found. Check it and try again.",
+    selfLink: "You cannot connect a profile to itself.",
+    partnerReadonly: "Records cannot be changed in partner mode. Only a limited cycle summary is available.",
     unknown: "Choose a function using the buttons below.",
   },
   ko: {
@@ -100,6 +114,12 @@ const TEXT = {
     undoEnd: (d) => `종료일(${d})을 취소했어요. 기록이 다시 열렸어요 ↩️`,
     privacy: "🔒 개인정보 보호\n\nLOONA는 서비스 제공에 필요한 익명화된 식별자, 설정, 주기 날짜만 저장합니다. 데이터는 제3자에게 판매되지 않습니다.",
     about: "🌙 LOONA Beta 1.4.0\n\n개인정보 보호를 중시하는 독립적인 주기 기록 봇이에요. 예측은 의료 조언이 아닙니다.",
+    ownMode: (code) => `내 프로필이 설정됐어요 🌙\n\n파트너 코드: ${code}\n\nTelegram 또는 Kakao의 LOONA에서 입력할 수 있어요. 신뢰하는 사람에게만 공유해 주세요.`,
+    enterCode: "다음 형식으로 코드를 보내 주세요: 파트너 코드 ABC123",
+    linked: "연결됐어요 🤝 개인 메모 없이 주기 요약만 볼 수 있어요.",
+    codeMissing: "코드를 찾을 수 없어요. 확인 후 다시 시도해 주세요.",
+    selfLink: "자기 자신의 프로필에는 연결할 수 없어요.",
+    partnerReadonly: "파트너 모드에서는 기록을 변경할 수 없으며, 제한된 주기 요약만 볼 수 있어요.",
     unknown: "원하는 기능을 아래 버튼에서 선택해 주세요.",
   },
 };
@@ -109,6 +129,7 @@ const DEFAULT_DEPS = {
   updatePeriodLength, updateLanguage, getLastCycle, getOpenCycle, createCycle,
   closeCycle, deleteCycle, reopenCycle, getUserCycles, predictCycle,
   formatPrediction, getDashboardText, deleteUserData,
+  enablePersonalMode, enablePartnerMode, connectPartner,
 };
 
 function getKakaoUserId(body) {
@@ -145,6 +166,9 @@ function command(utterance) {
     ["Настройки", "settings"], ["Settings", "settings"], ["설정", "settings"],
     ["Язык", "language"], ["Language", "language"], ["언어", "language"],
     ["Новости", "news"], ["News", "news"], ["소식", "news"],
+    ["Партнёр", "partner"], ["Partner", "partner"], ["파트너", "partner"],
+    ["Партнёр: мой профиль", "partner-own"], ["Partner: my profile", "partner-own"], ["파트너: 내 프로필", "partner-own"],
+    ["Партнёр: подключиться", "partner-connect"], ["Partner: connect", "partner-connect"], ["파트너: 연결", "partner-connect"],
     ["Приватность", "privacy"], ["Privacy", "privacy"], ["개인정보", "privacy"],
     ["О LOONA", "about"], ["About LOONA", "about"], ["LOONA 소개", "about"],
     ["Отменить запись", "undo"], ["Undo entry", "undo"], ["최근 기록 취소", "undo"],
@@ -155,6 +179,8 @@ function command(utterance) {
   if (exact.has(utterance)) return { name: exact.get(utterance) };
   if (/^(Начать цикл|Start cycle|주기 시작)(?:\s|$)/i.test(utterance)) return { name: "start", pattern: /^(Начать цикл|Start cycle|주기 시작)/i };
   if (/^(Завершить|Finish|생리 종료)(?:\s|$)/i.test(utterance)) return { name: "end", pattern: /^(Завершить|Finish|생리 종료)/i };
+  const partnerCode = utterance.match(/^(?:Код|Code|파트너 코드)\s+([A-Z0-9]{6})$/i);
+  if (partnerCode) return { name: "partner-code", value: partnerCode[1].toUpperCase() };
   const setting = utterance.match(/^(?:Цикл|Cycle|주기)\s*(\d{2})(?:\s*(?:дн\.?|days?|일))?$/i);
   if (setting) return { name: "cycle-length", value: Number(setting[1]) };
   const period = utterance.match(/^(?:Период|Period|생리)\s*(\d{1,2})(?:\s*(?:дн\.?|days?|일))?$/i);
@@ -190,6 +216,30 @@ async function handleKakaoSkill(body, dependencies = {}) {
   const action = command(utterance);
   if (action.name === "language") return languageResponse();
   if (action.name === "news") return localizedResponse(c.news, user);
+  if (action.name === "partner") return partnerModeResponse(user);
+  if (action.name === "partner-own") {
+    const { error, partnerCode } = await deps.enablePersonalMode(user);
+    if (error) return localizedResponse(c.noUser, user);
+    user = { ...user, mode: "female", linked_user_id: null, partner_code: partnerCode };
+    return localizedResponse(c.ownMode(partnerCode), user);
+  }
+  if (action.name === "partner-connect") {
+    const { error } = await deps.enablePartnerMode(user.id);
+    if (error) return localizedResponse(c.noUser, user);
+    user = { ...user, mode: "partner", linked_user_id: null };
+    return localizedResponse(c.enterCode, user);
+  }
+  if (action.name === "partner-code") {
+    const result = await deps.connectPartner(user, action.value);
+    if (result.error) return localizedResponse(c.noUser, user);
+    if (result.notFound) return localizedResponse(c.codeMissing, user);
+    if (result.self) return localizedResponse(c.selfLink, user);
+    user = { ...user, mode: "partner", linked_user_id: true };
+    return localizedResponse(c.linked, user);
+  }
+  if (user.mode === "partner" && ["start", "end", "settings", "cycle-length", "period-length", "undo"].includes(action.name)) {
+    return localizedResponse(c.partnerReadonly, user);
+  }
   if (action.name === "help") return localizedResponse(c.help, user);
   if (action.name === "privacy") return localizedResponse(privacyText(c), user);
   if (action.name === "about") return localizedResponse(c.about, user);
