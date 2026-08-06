@@ -186,12 +186,12 @@ async function testSkillScenarios() {
   assert.equal(text(dashboardResult), "LOONA dashboard");
   assert.deepEqual(
     dashboardResult.template.quickReplies.find((item) => item.label === "📰 소식"),
-    {
-      action: "webLink",
-      label: "📰 소식",
-      webLinkUrl: "https://pf.kakao.com/_xfltxnX/114199297",
-    },
+    { action: "message", label: "📰 소식", messageText: "소식" },
   );
+
+  const newsResult = await handleKakaoSkill(request("소식"), createDependencies());
+  assert.match(text(newsResult), /사랑과 정성/);
+  assert.match(text(newsResult), /Tiếng Việt/);
 }
 
 async function run() {
