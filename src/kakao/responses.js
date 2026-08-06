@@ -10,8 +10,9 @@ const COPY = {
       ["🌐 Язык", "Язык"],
       ["📰 Новости", "Новости"],
       ["🤝 Партнёр", "Партнёр"],
+      ["💬 Отзыв", "Отзыв"],
     ],
-    partnerQuick: [["✨ Статус", "Главная"], ["🤝 Партнёр", "Партнёр"], ["🌐 Язык", "Язык"], ["📰 Новости", "Новости"], ["❓ Помощь", "Помощь"]],
+    partnerQuick: [["✨ Статус", "Главная"], ["🤝 Партнёр", "Партнёр"], ["🌐 Язык", "Язык"], ["📰 Новости", "Новости"], ["💬 Отзыв", "Отзыв"], ["❓ Помощь", "Помощь"]],
     consent:
       "Даты цикла могут относиться к чувствительным данным о здоровье. LOONA использует их только для ведения записей и прогноза. Ознакомьтесь с политикой конфиденциальности и подтвердите согласие.",
     consentButtons: [["Согласна", "Согласие на обработку"], ["Политика", "Приватность"]],
@@ -38,8 +39,9 @@ const COPY = {
       ["🌐 Language", "Language"],
       ["📰 News", "News"],
       ["🤝 Partner", "Partner"],
+      ["💬 Feedback", "Feedback"],
     ],
-    partnerQuick: [["✨ Status", "Home"], ["🤝 Partner", "Partner"], ["🌐 Language", "Language"], ["📰 News", "News"], ["❓ Help", "Help"]],
+    partnerQuick: [["✨ Status", "Home"], ["🤝 Partner", "Partner"], ["🌐 Language", "Language"], ["📰 News", "News"], ["💬 Feedback", "Feedback"], ["❓ Help", "Help"]],
     consent:
       "Cycle dates may be sensitive health data. LOONA uses them only for cycle tracking and estimates. Please review the privacy policy and confirm your consent.",
     consentButtons: [["I agree", "Health data consent"], ["Privacy policy", "Privacy"]],
@@ -66,8 +68,9 @@ const COPY = {
       ["🌐 언어", "언어"],
       ["📰 소식", "소식"],
       ["🤝 파트너", "파트너"],
+      ["💬 의견", "의견"],
     ],
-    partnerQuick: [["✨ 상태", "홈"], ["🤝 파트너", "파트너"], ["🌐 언어", "언어"], ["📰 소식", "소식"], ["❓ 도움말", "도움말"]],
+    partnerQuick: [["✨ 상태", "홈"], ["🤝 파트너", "파트너"], ["🌐 언어", "언어"], ["📰 소식", "소식"], ["💬 의견", "의견"], ["❓ 도움말", "도움말"]],
     consent:
       "주기 날짜는 건강 관련 민감정보에 해당할 수 있어요. LOONA는 주기 기록과 예측 제공을 위해서만 이 정보를 사용합니다. 개인정보 처리방침을 확인하고 처리에 동의해 주세요.",
     consentButtons: [["동의합니다", "민감정보 처리 동의"], ["개인정보 처리방침", "개인정보"]],
@@ -146,6 +149,16 @@ function partnerModeResponse(userOrLanguage) {
   return response(content.text, content.buttons);
 }
 
+function feedbackResponse(userOrLanguage) {
+  const language = languageOf(userOrLanguage);
+  const content = {
+    ru: { text: "💬 Помогите сделать LOONA лучше\n\nЧто вы хотите отправить?", buttons: [["💡 Пожелание", "Пожелание"], ["🐞 Ошибка", "Ошибка"]] },
+    en: { text: "💬 Help us improve LOONA\n\nWhat would you like to send?", buttons: [["💡 Suggestion", "Suggestion"], ["🐞 Bug", "Bug"]] },
+    ko: { text: "💬 LOONA를 더 좋게 만드는 데 도와주세요\n\n어떤 의견을 보내시겠어요?", buttons: [["💡 기능 제안", "기능 제안"], ["🐞 오류 신고", "오류 신고"]] },
+  }[language];
+  return response(content.text, content.buttons);
+}
+
 module.exports = {
   COPY,
   response,
@@ -155,5 +168,6 @@ module.exports = {
   deleteConfirmationResponse,
   languageResponse,
   partnerModeResponse,
+  feedbackResponse,
   languageOf,
 };

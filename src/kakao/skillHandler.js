@@ -6,6 +6,7 @@ const {
   deleteConfirmationResponse,
   languageResponse,
   partnerModeResponse,
+  feedbackResponse,
   languageOf,
 } = require("./responses");
 const {
@@ -33,11 +34,12 @@ const { enablePersonalMode, enablePartnerMode, connectPartner } = require("../se
 const {
   trackEvent, markActive, markOnboardingComplete, markFirstCycle, saveAttribution,
 } = require("../services/analyticsService");
+const { saveFeedback } = require("../services/feedbackService");
 
 const TEXT = {
   ru: {
     welcome: "Здравствуйте! Я LOONA 🌙\n\nПомогу бережно и безопасно вести цикл.\n\nПрогноз приблизительный и не является медицинской рекомендацией.",
-    help: "LOONA умеет:\n\n🌙 Начать цикл — записать начало\n✅ Завершить — записать окончание\n✨ Главная — текущий статус\n📅 Мой цикл — прогноз периода и овуляции\n🤝 Партнёр — подключить близкого по коду\n⚙️ Настройки — длина цикла и периода\n🌐 Язык — русский, English, 한국어\n↩️ Отменить запись — исправить ошибку\n🔒 Приватность — обработка данных\n🗑 Удалить данные — полное удаление\n\nМожно указать дату: Начать цикл 2026-07-29",
+    help: "LOONA умеет:\n\n🌙 Начать цикл — записать начало\n✅ Завершить — записать окончание\n✨ Главная — текущий статус\n📅 Мой цикл — прогноз периода и овуляции\n🤝 Партнёр — подключить близкого по коду\n💬 Отзыв — пожелание или сообщение об ошибке\n⚙️ Настройки — длина цикла и периода\n🌐 Язык — русский, English, 한국어\n↩️ Отменить запись — исправить ошибку\n🔒 Приватность — обработка данных\n🗑 Удалить данные — полное удаление\n\nМожно указать дату: Начать цикл 2026-07-29",
     news: "📰 Новости LOONA\n\nМы с любовью и заботой развиваем LOONA, уделяя особое внимание вашему комфорту, приватности и спокойствию 💜\n\nВ планах:\n• китайский и вьетнамский языки\n• бережные AI-пояснения\n• более персональные прогнозы\n• запись симптомов и самочувствия\n• удобные напоминания\n• экспорт, удаление данных и усиление защиты\n\nAI и прогнозы носят справочный характер и не заменяют врача.",
     noUser: "Не удалось загрузить профиль. Попробуйте ещё раз.",
     consentSaved: "Согласие сохранено. Теперь можно вести записи ✅",
@@ -63,11 +65,14 @@ const TEXT = {
     codeMissing: "Код не найден. Проверьте его и попробуйте ещё раз.",
     selfLink: "Нельзя подключить профиль к самому себе.",
     partnerReadonly: "В режиме партнёра записи нельзя изменять. Вам доступна только бережная сводка.",
+    feedbackIdea: "Напишите пожелание следующим сообщением в формате:\n\nПожелание: ваш текст",
+    feedbackBug: "Опишите проблему следующим сообщением в формате:\n\nОшибка: что произошло",
+    feedbackSaved: "Спасибо 💜 Ваш отзыв сохранён и поможет сделать LOONA лучше.",
     unknown: "Выберите нужную функцию кнопкой ниже.",
   },
   en: {
     welcome: "Hi, I’m LOONA 🌙\n\nI’ll help you track your cycle safely and comfortably.\n\nEstimates are approximate and are not medical advice.",
-    help: "LOONA can help with:\n\n🌙 Start cycle — save a start date\n✅ Finish — save an end date\n✨ Home — current status\n📅 My cycle — period and ovulation estimate\n⚙️ Settings — cycle and period length\n🌐 Language — Русский, English, 한국어\n↩️ Undo entry — correct a mistake\n🔒 Privacy — data information\n🗑 Delete data — permanently erase everything\n\nYou can include a date: Start cycle 2026-07-29",
+    help: "LOONA can help with:\n\n🌙 Start cycle — save a start date\n✅ Finish — save an end date\n✨ Home — current status\n📅 My cycle — period and ovulation estimate\n💬 Feedback — send a suggestion or report a bug\n⚙️ Settings — cycle and period length\n🌐 Language — Русский, English, 한국어\n↩️ Undo entry — correct a mistake\n🔒 Privacy — data information\n🗑 Delete data — permanently erase everything\n\nYou can include a date: Start cycle 2026-07-29",
     news: "📰 LOONA News\n\nWe are building LOONA with love and care for your comfort, privacy, and peace of mind 💜\n\nComing next:\n• Chinese and Vietnamese\n• thoughtful AI explanations\n• more personalized estimates\n• symptom and wellbeing tracking\n• convenient reminders\n• export, deletion, and stronger privacy\n\nAI features and estimates are informational and do not replace medical advice.",
     noUser: "Could not load your profile. Please try again.",
     consentSaved: "Consent saved. You can now track your cycle ✅",
@@ -93,11 +98,14 @@ const TEXT = {
     codeMissing: "Code not found. Check it and try again.",
     selfLink: "You cannot connect a profile to itself.",
     partnerReadonly: "Records cannot be changed in partner mode. Only a limited cycle summary is available.",
+    feedbackIdea: "Send your suggestion in this format:\n\nSuggestion: your message",
+    feedbackBug: "Describe the problem in this format:\n\nBug: what happened",
+    feedbackSaved: "Thank you 💜 Your feedback was saved and will help improve LOONA.",
     unknown: "Choose a function using the buttons below.",
   },
   ko: {
     welcome: "안녕하세요, LOONA예요 🌙\n\n주기를 편안하고 안전하게 기록할 수 있도록 도와드려요.\n\n예측은 참고용이며 의료 조언이 아닙니다.",
-    help: "LOONA 기능\n\n🌙 주기 시작 — 시작일 기록\n✅ 생리 종료 — 종료일 기록\n✨ 홈 — 현재 상태\n📅 내 주기 — 생리 및 배란일 예측\n⚙️ 설정 — 주기와 생리 기간\n🌐 언어 — Русский, English, 한국어\n↩️ 최근 기록 취소 — 잘못된 기록 수정\n🔒 개인정보 — 데이터 처리 안내\n🗑 내 데이터 삭제 — 모든 기록 삭제\n\n날짜 입력 예: 주기 시작 2026-07-29",
+    help: "LOONA 기능\n\n🌙 주기 시작 — 시작일 기록\n✅ 생리 종료 — 종료일 기록\n✨ 홈 — 현재 상태\n📅 내 주기 — 생리 및 배란일 예측\n💬 의견 — 기능 제안 또는 오류 신고\n⚙️ 설정 — 주기와 생리 기간\n🌐 언어 — Русский, English, 한국어\n↩️ 최근 기록 취소 — 잘못된 기록 수정\n🔒 개인정보 — 데이터 처리 안내\n🗑 내 데이터 삭제 — 모든 기록 삭제\n\n날짜 입력 예: 주기 시작 2026-07-29",
     news: "📰 LOONA 소식\n\nLOONA는 여러분의 편안함과 개인정보 보호, 마음의 안정을 생각하며 사랑과 정성으로 만들고 있어요 💜\n\n앞으로 준비하고 있는 기능:\n• 中文 및 Tiếng Việt 지원\n• 기록을 쉽게 이해하도록 돕는 AI 설명\n• 더 개인화된 주기 예측\n• 증상과 컨디션 기록\n• 편리한 맞춤 알림\n• 데이터 내보내기, 완전 삭제, 더 강력한 개인정보 보호\n\nAI 기능과 예측은 참고용이며 의료 진단이나 조언을 대신하지 않습니다.",
     noUser: "프로필을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
     consentSaved: "동의가 저장됐어요. 이제 주기를 기록할 수 있어요 ✅",
@@ -123,6 +131,9 @@ const TEXT = {
     codeMissing: "코드를 찾을 수 없어요. 확인 후 다시 시도해 주세요.",
     selfLink: "자기 자신의 프로필에는 연결할 수 없어요.",
     partnerReadonly: "파트너 모드에서는 기록을 변경할 수 없으며, 제한된 주기 요약만 볼 수 있어요.",
+    feedbackIdea: "다음 형식으로 제안을 보내 주세요:\n\n의견: 내용",
+    feedbackBug: "다음 형식으로 문제를 알려 주세요:\n\n오류: 발생한 문제",
+    feedbackSaved: "감사합니다 💜 의견이 저장되었으며 LOONA를 개선하는 데 활용할게요.",
     unknown: "원하는 기능을 아래 버튼에서 선택해 주세요.",
   },
 };
@@ -134,6 +145,7 @@ const DEFAULT_DEPS = {
   formatPrediction, getDashboardText, deleteUserData,
   enablePersonalMode, enablePartnerMode, connectPartner,
   trackEvent, markActive, markOnboardingComplete, markFirstCycle, saveAttribution,
+  saveFeedback,
 };
 
 function getKakaoUserId(body) {
@@ -180,6 +192,9 @@ function command(utterance) {
     ["Язык", "language"], ["Language", "language"], ["언어", "language"],
     ["Новости", "news"], ["News", "news"], ["소식", "news"],
     ["Партнёр", "partner"], ["Partner", "partner"], ["파트너", "partner"],
+    ["Отзыв", "feedback"], ["Feedback", "feedback"], ["의견", "feedback"],
+    ["Пожелание", "feedback-idea"], ["Suggestion", "feedback-idea"], ["기능 제안", "feedback-idea"],
+    ["Ошибка", "feedback-bug"], ["Bug", "feedback-bug"], ["오류 신고", "feedback-bug"],
     ["Партнёр: мой профиль", "partner-own"], ["Partner: my profile", "partner-own"], ["파트너: 내 프로필", "partner-own"],
     ["Партнёр: подключиться", "partner-connect"], ["Partner: connect", "partner-connect"], ["파트너: 연결", "partner-connect"],
     ["Приватность", "privacy"], ["Privacy", "privacy"], ["개인정보", "privacy"],
@@ -198,6 +213,12 @@ function command(utterance) {
   if (setting) return { name: "cycle-length", value: Number(setting[1]) };
   const period = utterance.match(/^(?:Период|Period|생리)\s*(\d{1,2})(?:\s*(?:дн\.?|days?|일))?$/i);
   if (period) return { name: "period-length", value: Number(period[1]) };
+  const feedback = utterance.match(/^(Пожелание|Suggestion|의견|Ошибка|Bug|오류):\s*(.+)$/is);
+  if (feedback) return {
+    name: "feedback-submit",
+    type: /^(Ошибка|Bug|오류)$/i.test(feedback[1]) ? "bug" : "idea",
+    value: feedback[2].trim(),
+  };
   return { name: "unknown" };
 }
 function privacyText(c) {
@@ -240,6 +261,14 @@ async function handleKakaoSkill(body, dependencies = {}) {
   if (action.name === "language") return languageResponse();
   if (action.name === "news") return localizedResponse(c.news, user);
   if (action.name === "partner") return partnerModeResponse(user);
+  if (action.name === "feedback") return feedbackResponse(user);
+  if (action.name === "feedback-idea") return localizedResponse(c.feedbackIdea, user);
+  if (action.name === "feedback-bug") return localizedResponse(c.feedbackBug, user);
+  if (action.name === "feedback-submit") {
+    const { error } = await deps.saveFeedback(user.id, action.type, action.value);
+    if (!error) await deps.trackEvent(user, "feedback_submitted", attribution);
+    return localizedResponse(error ? c.noUser : c.feedbackSaved, user);
+  }
   if (action.name === "partner-own") {
     const { error, partnerCode } = await deps.enablePersonalMode(user);
     if (error) return localizedResponse(c.noUser, user);

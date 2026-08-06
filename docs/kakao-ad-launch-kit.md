@@ -37,17 +37,19 @@ conditions, pregnancy, fertility problems or cycle status.
 
 ### A — gentle tracking
 
-- Headline: `나를 위한 편안한 주기 기록`
-- Body: `복잡하지 않게 시작일과 종료일을 기록하고, 다음 주기를 참고용으로 확인해 보세요. LOONA는 사랑과 정성으로 만들고 있어요.`
-- CTA: `채널 추가하고 시작하기`
+- Headline: `LOONA 베타 테스트에 참여해 주세요`
+- Body: `복잡하지 않게 주기를 기록하는 LOONA를 테스트하고 솔직한 의견을 들려주세요. 현재 베타 버전이며 기능이 변경되거나 오류가 있을 수 있어요.`
+- CTA: `무료로 테스트하기`
 
 ### B — privacy
 
-- Headline: `소중한 기록, 더 안심되게`
-- Body: `주기 기록에 필요한 정보만 사용하고, 원할 때 직접 삭제할 수 있어요. 편안하고 조용한 나만의 기록, LOONA.`
-- CTA: `LOONA 시작하기`
+- Headline: `함께 만드는 LOONA 베타`
+- Body: `주기 기록에 필요한 정보만 사용하고 원할 때 직접 삭제할 수 있어요. 아직 테스트 중인 서비스에 참여하고 개선 의견을 보내주세요.`
+- CTA: `베타 테스트 참여하기`
 
 Required disclaimer on the destination/profile: `예측은 참고용이며 의료 조언이 아닙니다.`
+The ad and destination must keep the beta disclosure visible; do not present the
+service as a finished medical product.
 
 ## Attribution
 

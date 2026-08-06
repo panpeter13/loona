@@ -54,6 +54,7 @@ function createDependencies(overrides = {}) {
     markOnboardingComplete: async () => ({ error: null }),
     markFirstCycle: async () => ({ error: null }),
     saveAttribution: async () => ({ error: null }),
+    saveFeedback: async () => ({ error: null }),
     ...overrides,
   };
 }
@@ -196,6 +197,23 @@ async function testSkillScenarios() {
     dashboardResult.template.quickReplies.find((item) => item.label === "📰 소식"),
     { action: "message", label: "📰 소식", messageText: "소식" },
   );
+  assert.deepEqual(
+    dashboardResult.template.quickReplies.find((item) => item.label === "💬 의견"),
+    { action: "message", label: "💬 의견", messageText: "의견" },
+  );
+
+  const feedbackMenu = await handleKakaoSkill(request("의견"), createDependencies());
+  assert.deepEqual(feedbackMenu.template.quickReplies.map((item) => item.messageText), ["기능 제안", "오류 신고"]);
+
+  let savedFeedback;
+  const feedbackSaved = await handleKakaoSkill(request("의견: 알림 시간을 선택하고 싶어요"), createDependencies({
+    saveFeedback: async (userId, type, message) => {
+      savedFeedback = { userId, type, message };
+      return { error: null };
+    },
+  }));
+  assert.deepEqual(savedFeedback, { userId: 42, type: "idea", message: "알림 시간을 선택하고 싶어요" });
+  assert.match(text(feedbackSaved), /감사합니다/);
 
   const newsResult = await handleKakaoSkill(request("소식"), createDependencies());
   assert.match(text(newsResult), /사랑과 정성/);
