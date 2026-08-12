@@ -5,6 +5,7 @@ const userStates = require("../states/userStates");
 const { predictCycle } = require("../services/predictionService");
 const { formatPrediction } = require("../services/predictionText");
 const { getOrCreateUser } = require("../services/userService");
+const { notifyPartnersCycleStarted } = require("../services/partnerNotificationService");
 
 const {
   getLastCycle,
@@ -55,6 +56,8 @@ function registerCycleHandlers(bot) {
       console.log("Ошибка сохранения начала:", error);
       return ctx.reply("Не получилось сохранить дату.");
     }
+
+    await notifyPartnersCycleStarted(bot.telegram, user.id);
 
     return ctx.reply(cFor(user).started(today), mainKeyboard(user));
   });
@@ -315,6 +318,8 @@ async function handleCalendarDate(ctx, selectedDate) {
       await ctx.answerCbQuery();
       return ctx.reply("Не получилось сохранить дату.");
     }
+
+    await notifyPartnersCycleStarted(ctx.telegram, user.id);
 
     delete userStates[ctx.from.id];
 

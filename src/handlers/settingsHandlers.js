@@ -64,7 +64,10 @@ function registerSettingsHandlers(bot) {
     delete userStates[ctx.from.id];
 
     const c = copy[user?.language] || copy.ru;
-    return ctx.reply(c.own(partnerCode), mainKeyboard(user));
+    return ctx.reply(
+      c.own(partnerCode),
+      mainKeyboard({ ...user, mode: "female", linked_user_id: null, partner_code: partnerCode }),
+    );
   });
 
   bot.hears("🤝 Партнёр", async (ctx) => {
@@ -74,25 +77,14 @@ function registerSettingsHandlers(bot) {
 
     const user = await getOrCreateUser(ctx.from.id);
 
-    const { error } = await supabase
-      .from("users")
-      .update({
-        mode: "partner",
-        linked_user_id: null,
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      console.log("Ошибка сохранения режима партнёра:", error);
-      return ctx.reply("Не получилось включить режим партнёра.");
-    }
-
     userStates[ctx.from.id] = {
       action: "enter_partner_code",
     };
 
     const c = copy[user?.language] || copy.ru;
-    return ctx.reply(c.partner);
+    // Do not change or unlink the persisted profile until a valid code is
+    // entered. Show the partner keyboard immediately so cycle controls vanish.
+    return ctx.reply(c.partner, mainKeyboard({ ...user, mode: "partner" }));
   });
 
   bot.hears("⬅️ Назад", async (ctx) => {

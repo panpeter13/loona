@@ -83,6 +83,17 @@ function styled(text, style) {
 
 function mainKeyboard(user) {
   const l = labels[langOf(user)];
+
+  if (user?.mode === "partner") {
+    return Markup.keyboard([
+      [styled(l.dashboard, "primary")],
+      [styled(l.partnerCycle, "primary")],
+      [styled(l.mode), styled(l.language)],
+      [styled(l.about), styled(l.help)],
+      [styled(l.delete, "danger")],
+    ]).resize();
+  }
+
   return Markup.keyboard([
     [styled(l.dashboard, "primary")],
     [styled(l.start, "success"), styled(l.end, "primary")],

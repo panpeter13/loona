@@ -7,6 +7,33 @@ const notificationCopy = {
   ko: { coming: (a, b) => `🌙 다음 주기의 예상 범위가 가까워지고 있어요.\n\n예상 범위: ${a} — ${b}`, today: "🌙 오늘은 다음 주기의 가장 가능성 높은 시작일이에요.\n\n시작됐다면 LOONA에 기록해 주세요.", late: "📅 예상 범위가 지났지만 새 주기가 아직 기록되지 않았어요.\n\n시작됐다면 날짜를 저장해 주세요. 지연이 걱정되면 의료 전문가와 상담하세요.", end: "🩸 생리가 끝났다면 종료일을 기록해 주세요 ✅" },
 };
 
+const partnerNotificationCopy = {
+  ru: {
+    coming: "💗 У партнёрши приближается ожидаемый диапазон нового цикла.\n\nВ ближайшие дни ей могут особенно пригодиться ваша забота и внимание.",
+    today: "💗 Сегодня у партнёрши ожидаемая дата начала нового цикла.\n\nПоддержите её и спросите, чем можно помочь.",
+    late: "💗 Ожидаемый диапазон нового цикла партнёрши уже прошёл.\n\nБудьте рядом и поддержите её, если она волнуется.",
+  },
+  en: {
+    coming: "💗 Your partner’s estimated next-cycle range is approaching.\n\nA little extra care and attention may be especially welcome in the coming days.",
+    today: "💗 Today is your partner’s estimated next-cycle start date.\n\nOffer your support and ask how you can help.",
+    late: "💗 Your partner’s estimated next-cycle range has passed.\n\nBe there for them and offer support if they are worried.",
+  },
+  ko: {
+    coming: "💗 파트너의 다음 주기 예상 범위가 가까워지고 있어요.\n\n며칠 동안 평소보다 조금 더 세심하게 살펴 주세요.",
+    today: "💗 오늘은 파트너의 다음 주기 예상 시작일이에요.\n\n필요한 도움이 있는지 다정하게 물어봐 주세요.",
+    late: "💗 파트너의 다음 주기 예상 범위가 지났어요.\n\n걱정하고 있다면 곁에서 편안하게 지지해 주세요.",
+  },
+};
+
+function getCycleSubjectId(user) {
+  return user.mode === "partner" ? user.linked_user_id : user.id;
+}
+
+function getPredictionNotificationCopy(user) {
+  const copy = user.mode === "partner" ? partnerNotificationCopy : notificationCopy;
+  return copy[user.language] || copy.ru;
+}
+
 async function runNotifications(bot) {
   const { data: openCycles, error } = await supabase
     .from("cycles")
@@ -38,10 +65,33 @@ async function runNotifications(bot) {
   }
 
   for (const user of users) {
+    const cycleSubjectId = getCycleSubjectId(user);
+
+    if (!cycleSubjectId) {
+      continue;
+    }
+
+    let cycleSubject = user;
+
+    if (user.mode === "partner") {
+      const { data: linkedUser, error: linkedUserError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", cycleSubjectId)
+        .maybeSingle();
+
+      if (linkedUserError || !linkedUser) {
+        console.log("Ошибка получения профиля партнёрши:", linkedUserError);
+        continue;
+      }
+
+      cycleSubject = linkedUser;
+    }
+
     const { data: cycles, error: cyclesError } = await supabase
       .from("cycles")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", cycleSubjectId)
       .order("period_start", { ascending: true });
 
     if (cyclesError) {
@@ -59,8 +109,8 @@ async function runNotifications(bot) {
       continue;
     }
 
-    const prediction = predictCycle(cycles, user);
-    const message = notificationCopy[user.language] || notificationCopy.ru;
+    const prediction = predictCycle(cycles, cycleSubject);
+    const message = getPredictionNotificationCopy(user);
     const todayString = getToday(user.timezone);
 
     if (!prediction) {
@@ -205,4 +255,6 @@ module.exports = {
   runNotifications,
   wasNotificationSent,
   saveNotification,
+  getCycleSubjectId,
+  getPredictionNotificationCopy,
 };

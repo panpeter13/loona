@@ -96,7 +96,10 @@ function registerTextHandler(bot) {
 
       delete userStates[ctx.from.id];
 
-      return ctx.reply(c.linked, mainKeyboard(user));
+      return ctx.reply(
+        c.linked,
+        mainKeyboard({ ...user, mode: "partner", linked_user_id: femaleUser.id }),
+      );
     }
 
     if (state?.action === "manual_start") {

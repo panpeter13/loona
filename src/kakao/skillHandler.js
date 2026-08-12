@@ -40,7 +40,8 @@ const TEXT = {
   ru: {
     welcome: "Здравствуйте! Я LOONA 🌙\n\nПомогу бережно и безопасно вести цикл.\n\nПрогноз приблизительный и не является медицинской рекомендацией.",
     help: "LOONA умеет:\n\n🌙 Начать цикл — записать начало\n✅ Завершить — записать окончание\n✨ Главная — текущий статус\n📅 Мой цикл — прогноз периода и овуляции\n🤝 Партнёр — подключить близкого по коду\n💬 Отзыв — пожелание или сообщение об ошибке\n⚙️ Настройки — длина цикла и периода\n🌐 Язык — русский, English, 한국어\n↩️ Отменить запись — исправить ошибку\n🔒 Приватность — обработка данных\n🗑 Удалить данные — полное удаление\n\nМожно указать дату: Начать цикл 2026-07-29",
-    news: "📰 Новости LOONA\n\nМы с любовью и заботой развиваем LOONA, уделяя особое внимание вашему комфорту, приватности и спокойствию 💜\n\nВ планах:\n• китайский и вьетнамский языки\n• бережные AI-пояснения\n• более персональные прогнозы\n• запись симптомов и самочувствия\n• удобные напоминания\n• экспорт, удаление данных и усиление защиты\n\nAI и прогнозы носят справочный характер и не заменяют врача.",
+    news: "📰 Новости LOONA\n\n🎁 Публичная beta бесплатна до 31 октября 2026 года. Карта не требуется, автоматических списаний не будет.\n\nУже доступно:\n✅ Учёт цикла и динамический прогноз\n✅ Бережный режим партнёра\n✅ Русский, English и 한국어\n\nВ планах:\n🚧 Уведомления в Kakao после подключения Event API\n🚧 Подсказки партнёру о поддержке\n🚧 Календарь истории и понятные тенденции\n🚧 Необязательные отметки самочувствия и симптомов\n🚧 Экспорт данных и дополнительные настройки приватности\n\nПрогнозы приблизительны и не заменяют медицинскую консультацию.",
+    telegramLink: "Telegram-бот: https://t.me/loona_cycle_bot",
     noUser: "Не удалось загрузить профиль. Попробуйте ещё раз.",
     consentSaved: "Согласие сохранено. Теперь можно вести записи ✅",
     dateFormat: "Проверьте формат даты. Пример: 2026-07-29",
@@ -73,7 +74,8 @@ const TEXT = {
   en: {
     welcome: "Hi, I’m LOONA 🌙\n\nI’ll help you track your cycle safely and comfortably.\n\nEstimates are approximate and are not medical advice.",
     help: "LOONA can help with:\n\n🌙 Start cycle — save a start date\n✅ Finish — save an end date\n✨ Home — current status\n📅 My cycle — period and ovulation estimate\n💬 Feedback — send a suggestion or report a bug\n⚙️ Settings — cycle and period length\n🌐 Language — Русский, English, 한국어\n↩️ Undo entry — correct a mistake\n🔒 Privacy — data information\n🗑 Delete data — permanently erase everything\n\nYou can include a date: Start cycle 2026-07-29",
-    news: "📰 LOONA News\n\nWe are building LOONA with love and care for your comfort, privacy, and peace of mind 💜\n\nComing next:\n• Chinese and Vietnamese\n• thoughtful AI explanations\n• more personalized estimates\n• symptom and wellbeing tracking\n• convenient reminders\n• export, deletion, and stronger privacy\n\nAI features and estimates are informational and do not replace medical advice.",
+    news: "📰 LOONA News\n\n🎁 The public beta is free through October 31, 2026. No card is required and there will be no automatic charges.\n\nAvailable now:\n✅ Cycle tracking and dynamic estimates\n✅ A thoughtful partner mode\n✅ Русский, English, and 한국어\n\nPlanned:\n🚧 Kakao notifications after Event API integration\n🚧 Support suggestions for partners\n🚧 A history calendar and clear trends\n🚧 Optional wellbeing and symptom check-ins\n🚧 Data export and more privacy controls\n\nEstimates are approximate and do not replace medical advice.",
+    telegramLink: "Telegram bot: https://t.me/loona_cycle_bot",
     noUser: "Could not load your profile. Please try again.",
     consentSaved: "Consent saved. You can now track your cycle ✅",
     dateFormat: "Check the date format. Example: 2026-07-29",
@@ -106,7 +108,8 @@ const TEXT = {
   ko: {
     welcome: "안녕하세요, LOONA예요 🌙\n\n주기를 편안하고 안전하게 기록할 수 있도록 도와드려요.\n\n예측은 참고용이며 의료 조언이 아닙니다.",
     help: "LOONA 기능\n\n🌙 주기 시작 — 시작일 기록\n✅ 생리 종료 — 종료일 기록\n✨ 홈 — 현재 상태\n📅 내 주기 — 생리 및 배란일 예측\n💬 의견 — 기능 제안 또는 오류 신고\n⚙️ 설정 — 주기와 생리 기간\n🌐 언어 — Русский, English, 한국어\n↩️ 최근 기록 취소 — 잘못된 기록 수정\n🔒 개인정보 — 데이터 처리 안내\n🗑 내 데이터 삭제 — 모든 기록 삭제\n\n날짜 입력 예: 주기 시작 2026-07-29",
-    news: "📰 LOONA 소식\n\nLOONA는 여러분의 편안함과 개인정보 보호, 마음의 안정을 생각하며 사랑과 정성으로 만들고 있어요 💜\n\n앞으로 준비하고 있는 기능:\n• 中文 및 Tiếng Việt 지원\n• 기록을 쉽게 이해하도록 돕는 AI 설명\n• 더 개인화된 주기 예측\n• 증상과 컨디션 기록\n• 편리한 맞춤 알림\n• 데이터 내보내기, 완전 삭제, 더 강력한 개인정보 보호\n\nAI 기능과 예측은 참고용이며 의료 진단이나 조언을 대신하지 않습니다.",
+    news: "📰 LOONA 소식\n\n🎁 공개 베타는 2026년 10월 31일까지 무료예요. 카드 등록이 필요 없으며 자동 결제되지 않아요.\n\n현재 제공 기능:\n✅ 주기 기록 및 맞춤 예측\n✅ 배려 중심의 파트너 모드\n✅ Русский, English, 한국어\n\n준비 중인 기능:\n🚧 Event API 연동 후 Kakao 알림\n🚧 파트너를 위한 다정한 지원 팁\n🚧 기록 달력과 이해하기 쉬운 변화 요약\n🚧 선택형 컨디션 및 증상 기록\n🚧 데이터 내보내기와 추가 개인정보 보호 설정\n\n예측은 참고용이며 의료 조언을 대신하지 않습니다.",
+    telegramLink: "Telegram 봇: https://t.me/loona_cycle_bot",
     noUser: "프로필을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
     consentSaved: "동의가 저장됐어요. 이제 주기를 기록할 수 있어요 ✅",
     dateFormat: "날짜 형식을 확인해 주세요. 예: 2026-07-29",
@@ -137,6 +140,13 @@ const TEXT = {
     unknown: "원하는 기능을 아래 버튼에서 선택해 주세요.",
   },
 };
+
+function neutralNews(text) {
+  return text
+    .replace("🎁 Публичная beta бесплатна до 31 октября 2026 года. Карта не требуется, автоматических списаний не будет.", "🧪 LOONA сейчас проходит открытое бета-тестирование. Условия и набор функций могут изменяться.")
+    .replace("🎁 The public beta is free through October 31, 2026. No card is required and there will be no automatic charges.", "🧪 LOONA is currently in open beta. Features and terms may change.")
+    .replace("🎁 공개 베타는 2026년 10월 31일까지 무료예요. 카드 등록이 필요 없으며 자동 결제되지 않아요.", "🧪 LOONA는 현재 공개 베타 테스트 중이며 기능과 이용 조건은 변경될 수 있어요.");
+}
 
 const DEFAULT_DEPS = {
   getOrCreateKakaoUser, recordHealthDataConsent, updateCycleLength,
@@ -259,7 +269,7 @@ async function handleKakaoSkill(body, dependencies = {}) {
   }
   const action = command(utterance);
   if (action.name === "language") return languageResponse();
-  if (action.name === "news") return localizedResponse(c.news, user);
+  if (action.name === "news") return localizedResponse(neutralNews(c.news) + "\n\n" + c.telegramLink, user);
   if (action.name === "partner") return partnerModeResponse(user);
   if (action.name === "feedback") return feedbackResponse(user);
   if (action.name === "feedback-idea") return localizedResponse(c.feedbackIdea, user);
@@ -277,10 +287,9 @@ async function handleKakaoSkill(body, dependencies = {}) {
     return localizedResponse(c.ownMode(partnerCode), user);
   }
   if (action.name === "partner-connect") {
-    const { error } = await deps.enablePartnerMode(user.id);
-    if (error) return localizedResponse(c.noUser, user);
-    user = { ...user, mode: "partner", linked_user_id: null };
-    return localizedResponse(c.enterCode, user);
+    // Switching is completed only after a valid partner code. This preserves
+    // an existing link when the user merely opens the connection flow.
+    return localizedResponse(c.enterCode, { ...user, mode: "partner" });
   }
   if (action.name === "partner-code") {
     const result = await deps.connectPartner(user, action.value);
