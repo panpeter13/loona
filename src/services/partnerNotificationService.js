@@ -1,4 +1,5 @@
 const supabase = require("../database/supabase");
+const logger = require("../utils/logger");
 
 const copy = {
   ru: "💗 Партнёрша отметила начало нового цикла в LOONA.\n\nСамое время проявить немного больше заботы и спросить, чем можно помочь.",
@@ -19,7 +20,7 @@ async function notifyPartnersCycleStarted(telegram, ownerId) {
     .not("telegram_id", "is", null);
 
   if (error) {
-    console.log("Ошибка получения партнёров для уведомления:", error);
+    logger.error("Ошибка получения партнёров для уведомления", error);
     return;
   }
 
@@ -30,7 +31,7 @@ async function notifyPartnersCycleStarted(telegram, ownerId) {
         partnerCycleStartedText(partner.language),
       );
     } catch (sendError) {
-      console.log("Ошибка отправки уведомления партнёру:", sendError);
+      logger.error("Ошибка отправки уведомления партнёру", sendError);
     }
   }
 }

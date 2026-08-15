@@ -1,6 +1,7 @@
 const supabase = require("../database/supabase");
 const { getToday } = require("../utils/dateUtils");
 const { daysBetween, predictCycle } = require("./predictionService");
+const logger = require("../utils/logger");
 const notificationCopy = {
   ru: { coming: (a, b) => `🌙 Приближается прогнозируемый диапазон нового цикла.\n\nОжидаемый диапазон: ${a} — ${b}`, today: "🌙 Сегодня наиболее вероятная дата начала нового цикла.\n\nЕсли он начался, отметьте начало в LOONA.", late: "📅 Прогнозируемый диапазон уже закончился, а новый цикл пока не отмечен.\n\nЕсли он начался, сохраните дату начала. При заметной задержке или беспокойстве обратитесь к врачу.", end: "🩸 Если период уже завершился, не забудьте отметить окончание ✅" },
   en: { coming: (a, b) => `🌙 The estimated range for your next cycle is approaching.\n\nEstimated range: ${a} — ${b}`, today: "🌙 Today is the most likely start date for your next cycle.\n\nIf it has started, record it in LOONA.", late: "📅 The estimated range has ended and a new cycle has not been recorded.\n\nSave the start date if it began. If a delay concerns you, contact a healthcare professional.", end: "🩸 If your period has ended, remember to record the end date ✅" },
@@ -50,7 +51,7 @@ async function runNotifications(bot) {
     .is("period_end", null);
 
   if (error) {
-    console.log("Ошибка уведомлений:", error);
+    logger.error("Ошибка уведомлений", error);
     return;
   }
 
@@ -60,7 +61,7 @@ async function runNotifications(bot) {
     .not("telegram_id", "is", null);
 
   if (usersError) {
-    console.log("Ошибка получения пользователей:", usersError);
+    logger.error("Ошибка получения пользователей", usersError);
     return;
   }
 
@@ -81,7 +82,7 @@ async function runNotifications(bot) {
         .maybeSingle();
 
       if (linkedUserError || !linkedUser) {
-        console.log("Ошибка получения профиля партнёрши:", linkedUserError);
+        logger.error("Ошибка получения профиля партнёрши", linkedUserError);
         continue;
       }
 
@@ -95,7 +96,7 @@ async function runNotifications(bot) {
       .order("period_start", { ascending: true });
 
     if (cyclesError) {
-      console.log("Ошибка получения циклов пользователя:", cyclesError);
+      logger.error("Ошибка получения циклов пользователя", cyclesError);
       continue;
     }
 
@@ -137,7 +138,7 @@ async function runNotifications(bot) {
 
           await saveNotification(user.id, notificationType);
         } catch (err) {
-          console.log("Ошибка отправки уведомления о скором цикле:", err);
+          logger.error("Ошибка отправки уведомления о скором цикле", err);
         }
       }
     }
@@ -155,7 +156,7 @@ async function runNotifications(bot) {
 
           await saveNotification(user.id, notificationType);
         } catch (err) {
-          console.log("Ошибка отправки уведомления на сегодня:", err);
+          logger.error("Ошибка отправки уведомления на сегодня", err);
         }
       }
     }
@@ -173,7 +174,7 @@ async function runNotifications(bot) {
 
           await saveNotification(user.id, notificationType);
         } catch (err) {
-          console.log("Ошибка отправки уведомления о задержке:", err);
+          logger.error("Ошибка отправки уведомления о задержке", err);
         }
       }
     }
@@ -195,7 +196,7 @@ async function runNotifications(bot) {
 
       try {
         if (!cycle.users?.telegram_id) {
-          console.log("Нет telegram_id у пользователя:", cycle.user_id);
+          logger.info("Нет telegram_id у пользователя", { userId: cycle.user_id });
           continue;
         }
 
@@ -209,7 +210,7 @@ async function runNotifications(bot) {
           `period_end_reminder:${cycle.id}`,
         );
       } catch (err) {
-        console.log("Ошибка отправки или сохранения:", err);
+        logger.error("Ошибка отправки или сохранения", err);
       }
     }
   }
@@ -225,7 +226,7 @@ async function wasNotificationSent(userId, type) {
     .maybeSingle();
 
   if (error) {
-    console.log("Ошибка проверки уведомления:", error);
+    logger.error("Ошибка проверки уведомления", error);
     return false;
   }
 
@@ -243,11 +244,11 @@ async function saveNotification(userId, type) {
     .single();
 
   if (error) {
-    console.log("Ошибка сохранения уведомления:", error);
+    logger.error("Ошибка сохранения уведомления", error);
     return null;
   }
 
-  console.log("Уведомление сохранено:", data);
+  logger.info("Уведомление сохранено", { data });
   return data;
 }
 
