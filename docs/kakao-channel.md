@@ -79,7 +79,16 @@ For the two date blocks, name the Skill parameter exactly `date`. The backend
 also accepts `cycle_date`, `period_date`, or `sys_date`, but using one documented
 name keeps the Open Builder configuration easier to audit.
 
-The Railway service needs a public domain. Register the complete HTTPS URL, for example `https://<domain>/kakao/skill`, as the Skill URL in Kakao Chatbot Admin Center.
+The Railway service needs a public domain. Create a random 32-byte-or-longer
+`KAKAO_WEBHOOK_SECRET` in Railway and register the complete HTTPS URL, including
+the same URL-encoded secret, as the Skill URL in Kakao Chatbot Admin Center:
+
+```text
+https://<domain>/kakao/skill?token=<KAKAO_WEBHOOK_SECRET>
+```
+
+Requests without the matching token return HTTP 401 before any user data is
+looked up or changed. Do not put this URL in public documentation or screenshots.
 
 Set the following production environment variable:
 

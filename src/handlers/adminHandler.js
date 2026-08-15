@@ -5,6 +5,7 @@ const {
 const { getDatabaseHealth } = require("../services/healthService");
 const packageInfo = require("../../package.json");
 const { getGrowthSummary } = require("../services/analyticsService");
+const logger = require("../utils/logger");
 
 function isAdmin(ctx) {
   const adminId = process.env.ADMIN_TELEGRAM_ID || process.env.ADMIN_ID;
@@ -47,7 +48,7 @@ function registerAdminHandler(bot) {
     const { data: feedbackList, error } = await getLatestFeedback(10);
 
     if (error) {
-      console.log("Ошибка получения отзывов:", error);
+      logger.error("Ошибка получения отзывов", error);
       return ctx.reply("Не получилось загрузить отзывы.");
     }
 
@@ -93,7 +94,7 @@ function registerAdminHandler(bot) {
         `Telegram (основные): ${s.telegramOwners}`,
       );
     } catch (error) {
-      console.log("Ошибка аналитики:", error);
+      logger.error("Ошибка аналитики", error);
       return ctx.reply("Не получилось загрузить аналитику.");
     }
   });
@@ -108,7 +109,7 @@ function registerAdminHandler(bot) {
     const { error } = await updateFeedbackStatus(feedbackId, "done");
 
     if (error) {
-      console.log("Ошибка обновления статуса:", error);
+      logger.error("Ошибка обновления статуса", error);
       return ctx.answerCbQuery("Ошибка");
     }
 

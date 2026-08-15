@@ -7,10 +7,8 @@ const {
 const userStates = require("../states/userStates");
 const supabase = require("../database/supabase");
 const { getOrCreateUser } = require("../services/userService");
-
-function generatePartnerCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+const { generatePartnerCode } = require("../services/partnerService");
+const logger = require("../utils/logger");
 
 const copy = {
   ru: { settings: "⚙️ Настройки\n\nВыберите нужное значение кнопкой:", mode: "Выберите режим:", own: (code) => `Режим включён: свой цикл 🌙\n\nКод для партнёра:\n${code}\n\nПартнёр сможет ввести этот код у себя в боте.`, partner: "Режим включён: партнёр 🤝\n\nВведите код партнёрши:", menu: "Главное меню" },
@@ -57,7 +55,7 @@ function registerSettingsHandlers(bot) {
       .eq("id", user.id);
 
     if (error) {
-      console.log("Ошибка сохранения режима:", error);
+      logger.error("Ошибка сохранения режима", error);
       return ctx.reply("Не получилось включить режим.");
     }
 

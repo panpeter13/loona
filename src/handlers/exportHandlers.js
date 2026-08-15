@@ -1,5 +1,6 @@
 const { getOrCreateUser } = require("../services/userService");
 const { getExportData } = require("../services/exportService");
+const logger = require("../utils/logger");
 
 function registerExportHandlers(bot) {
   bot.hears("📤 Экспорт данных", async (ctx) => {
@@ -12,7 +13,7 @@ function registerExportHandlers(bot) {
     const { data, error } = await getExportData(user);
 
     if (error) {
-      console.log("Ошибка экспорта:", error);
+      logger.error("Ошибка экспорта", error);
       return ctx.reply("Не получилось экспортировать данные.");
     }
 

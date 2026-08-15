@@ -3,6 +3,8 @@ const SECRET_KEYS = [
   process.env.SUPABASE_SECRET_KEY,
   process.env.SUPABASE_KEY,
   process.env.OPENAI_API_KEY,
+  process.env.KAKAO_WEBHOOK_SECRET,
+  process.env.HASH_PEPPER,
 ].filter(Boolean);
 
 function sanitize(value) {

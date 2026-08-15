@@ -4,8 +4,10 @@ const { getCalendarKeyboard } = require("../keyboards/calendarKeyboard");
 const userStates = require("../states/userStates");
 const { predictCycle } = require("../services/predictionService");
 const { formatPrediction } = require("../services/predictionText");
-const { getOrCreateUser } = require("../services/userService");
+const { getOrCreateUser, recordHealthDataConsent } = require("../services/userService");
 const { notifyPartnersCycleStarted } = require("../services/partnerNotificationService");
+const { requireHealthConsent, consentCopy } = require("../services/telegramConsentService");
+const logger = require("../utils/logger");
 
 const {
   getLastCycle,
@@ -28,19 +30,40 @@ const cycleCopy = {
 function cFor(user) { return cycleCopy[user?.language] || cycleCopy.ru; }
 
 function registerCycleHandlers(bot) {
+  bot.action("health_consent_accept", async (ctx) => {
+    const user = await getOrCreateUser(ctx.from.id);
+    if (!user) return ctx.answerCbQuery("Profile unavailable");
+    const { error } = await recordHealthDataConsent(user.id);
+    if (error) {
+      logger.error("Ошибка сохранения согласия Telegram", error);
+      return ctx.answerCbQuery("Не получилось сохранить согласие", { show_alert: true });
+    }
+    const c = consentCopy(user);
+    await ctx.answerCbQuery();
+    return ctx.editMessageText(c.saved);
+  });
+
+  bot.action("health_consent_decline", async (ctx) => {
+    const user = await getOrCreateUser(ctx.from.id);
+    const c = consentCopy(user);
+    await ctx.answerCbQuery();
+    return ctx.editMessageText(c.declined);
+  });
+
   bot.hears("🌙 Начался цикл", async (ctx) => {
     const user = await getOrCreateUser(ctx.from.id);
 
     if (!user) {
       return ctx.reply("Не получилось найти профиль.");
     }
+    if (await requireHealthConsent(ctx, user)) return;
 
     const today = getToday(user.timezone);
 
     const { data: openedCycle, error: findError } = await getOpenCycle(user.id);
 
     if (findError) {
-      console.log("Ошибка поиска открытого цикла:", findError);
+      logger.error("Ошибка поиска открытого цикла", findError);
       return ctx.reply("Не получилось проверить текущий цикл.");
     }
 
@@ -53,7 +76,7 @@ function registerCycleHandlers(bot) {
     const { error } = await createCycle(user, today);
 
     if (error) {
-      console.log("Ошибка сохранения начала:", error);
+      logger.error("Ошибка сохранения начала", error);
       return ctx.reply("Не получилось сохранить дату.");
     }
 
@@ -104,13 +127,14 @@ function registerCycleHandlers(bot) {
     if (!user) {
       return ctx.reply("Не получилось найти профиль.");
     }
+    if (await requireHealthConsent(ctx, user)) return;
 
     const today = getToday(user.timezone);
 
     const { data: cycle, error: findError } = await getOpenCycle(user.id);
 
     if (findError) {
-      console.log("Ошибка поиска открытого цикла:", findError);
+      logger.error("Ошибка поиска открытого цикла", findError);
       return ctx.reply("Не получилось проверить текущий цикл.");
     }
 
@@ -127,7 +151,7 @@ function registerCycleHandlers(bot) {
     const { error } = await closeCycle(cycle.id, today);
 
     if (error) {
-      console.log("Ошибка сохранения окончания:", error);
+      logger.error("Ошибка сохранения окончания", error);
       return ctx.reply("Не получилось сохранить дату окончания.");
     }
 
@@ -166,7 +190,7 @@ function registerCycleHandlers(bot) {
     const { data: cycles, error } = await getUserCycles(user.id);
 
     if (error) {
-      console.log("Ошибка получения циклов:", error);
+      logger.error("Ошибка получения циклов", error);
       return ctx.reply("Не получилось загрузить данные.");
     }
 
@@ -203,14 +227,14 @@ function registerCycleHandlers(bot) {
       .maybeSingle();
 
     if (userError || !partnerUser) {
-      console.log("Ошибка поиска партнёрши:", userError);
+      logger.error("Ошибка поиска партнёрши", userError);
       return ctx.reply("Не получилось найти данные партнёрши.");
     }
 
     const { data: partnerCycles, error } = await getUserCycles(partnerUser.id);
 
     if (error) {
-      console.log("Ошибка получения цикла партнёрши:", error);
+      logger.error("Ошибка получения цикла партнёрши", error);
       return ctx.reply("Не получилось загрузить данные.");
     }
 
@@ -235,7 +259,7 @@ function registerCycleHandlers(bot) {
     const { data: lastCycle, error } = await getLastCycle(user.id);
 
     if (error) {
-      console.log("Ошибка поиска последней записи:", error);
+      logger.error("Ошибка поиска последней записи", error);
       return ctx.reply("Не получилось найти последнюю запись.");
     }
 
@@ -247,7 +271,7 @@ function registerCycleHandlers(bot) {
       const { error: deleteError } = await deleteCycle(lastCycle.id);
 
       if (deleteError) {
-        console.log("Ошибка удаления:", deleteError);
+        logger.error("Ошибка удаления", deleteError);
         return ctx.reply("Не получилось отменить запись.");
       }
 
@@ -259,7 +283,7 @@ function registerCycleHandlers(bot) {
     const { error: updateError } = await reopenCycle(lastCycle.id);
 
     if (updateError) {
-      console.log("Ошибка отката окончания:", updateError);
+      logger.error("Ошибка отката окончания", updateError);
       return ctx.reply("Не получилось отменить окончание.");
     }
 
@@ -289,6 +313,11 @@ async function handleCalendarDate(ctx, selectedDate) {
     return ctx.reply("Не получилось найти профиль.");
   }
 
+  if (await requireHealthConsent(ctx, user)) {
+    await ctx.answerCbQuery();
+    return;
+  }
+
   if (selectedDate > getToday(user.timezone)) {
     await ctx.answerCbQuery("Нельзя выбрать дату из будущего");
     return;
@@ -298,7 +327,7 @@ async function handleCalendarDate(ctx, selectedDate) {
     const { data: openedCycle, error: findError } = await getOpenCycle(user.id);
 
     if (findError) {
-      console.log("Ошибка поиска открытого цикла:", findError);
+      logger.error("Ошибка поиска открытого цикла", findError);
       await ctx.answerCbQuery();
       return ctx.reply("Не получилось проверить текущий цикл.");
     }
@@ -314,7 +343,7 @@ async function handleCalendarDate(ctx, selectedDate) {
     const { error } = await createCycle(user, selectedDate);
 
     if (error) {
-      console.log("Ошибка сохранения начала:", error);
+      logger.error("Ошибка сохранения начала", error);
       await ctx.answerCbQuery();
       return ctx.reply("Не получилось сохранить дату.");
     }
@@ -333,7 +362,7 @@ async function handleCalendarDate(ctx, selectedDate) {
     const { data: cycle, error: findError } = await getOpenCycle(user.id);
 
     if (findError) {
-      console.log("Ошибка поиска открытого цикла:", findError);
+      logger.error("Ошибка поиска открытого цикла", findError);
       await ctx.answerCbQuery();
       return ctx.reply("Не получилось проверить текущий цикл.");
     }
@@ -355,7 +384,7 @@ async function handleCalendarDate(ctx, selectedDate) {
     const { error } = await closeCycle(cycle.id, selectedDate);
 
     if (error) {
-      console.log("Ошибка сохранения окончания:", error);
+      logger.error("Ошибка сохранения окончания", error);
       await ctx.answerCbQuery();
       return ctx.reply("Не получилось сохранить дату окончания.");
     }

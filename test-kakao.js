@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict");
+process.env.KAKAO_WEBHOOK_SECRET ||= "test-kakao-webhook-secret-32-bytes";
+process.env.HASH_PEPPER ||= "test-hash-pepper-at-least-32-bytes-long";
 const { createApp } = require("./src/kakao/server");
 const { handleKakaoSkill } = require("./src/kakao/skillHandler");
 
@@ -216,8 +218,8 @@ async function testSkillScenarios() {
   assert.match(text(feedbackSaved), /감사합니다/);
 
   const newsResult = await handleKakaoSkill(request("소식"), createDependencies());
-  assert.match(text(newsResult), /사랑과 정성/);
-  assert.match(text(newsResult), /Tiếng Việt/);
+  assert.match(text(newsResult), /공개 베타 테스트/);
+  assert.match(text(newsResult), /Kakao 알림/);
 
   const partnerMenu = await handleKakaoSkill(request("파트너"), createDependencies());
   assert.match(text(partnerMenu), /파트너 모드/);
@@ -269,7 +271,14 @@ async function run() {
     assert.equal(privacy.status, 200);
     assert.match(await privacy.text(), /PAN PETR/);
 
-    const kakao = await fetch(`http://127.0.0.1:${port}/kakao/skill`, {
+    const unauthorized = await fetch(`http://127.0.0.1:${port}/kakao/skill`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(unauthorized.status, 401);
+
+    const kakao = await fetch(`http://127.0.0.1:${port}/kakao/skill?token=${encodeURIComponent(process.env.KAKAO_WEBHOOK_SECRET)}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({}),

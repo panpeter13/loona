@@ -1,17 +1,31 @@
 const supabase = require("../database/supabase");
 const hashUserId = require("../utils/hashUser");
+const { legacyHashUserId } = hashUserId;
+const logger = require("../utils/logger");
+
+async function findAndMigrateUser(identity) {
+  const userHash = hashUserId(identity);
+  const { data: current, error: currentError } = await supabase
+    .from("users").select("*").eq("user_hash", userHash).maybeSingle();
+  if (currentError) return { error: currentError };
+  if (current) return { user: current, userHash };
+
+  const legacyHash = legacyHashUserId(identity);
+  const { data: legacy, error: legacyError } = await supabase
+    .from("users").select("*").eq("user_hash", legacyHash).maybeSingle();
+  if (legacyError || !legacy) return { error: legacyError, userHash };
+
+  const { data: migrated, error: migrationError } = await supabase
+    .from("users").update({ user_hash: userHash }).eq("id", legacy.id).select().single();
+  if (migrationError) return { error: migrationError };
+  return { user: migrated, userHash };
+}
 
 async function getOrCreateUser(telegramId) {
-  const userHash = hashUserId(telegramId);
-
-  const { data: existingUser, error: selectError } = await supabase
-    .from("users")
-    .select("*")
-    .eq("user_hash", userHash)
-    .maybeSingle();
+  const { user: existingUser, userHash, error: selectError } = await findAndMigrateUser(telegramId);
 
   if (selectError) {
-    console.log("Ошибка поиска пользователя:", selectError);
+    logger.error("Ошибка поиска пользователя", selectError);
     return null;
   }
 
@@ -27,7 +41,7 @@ async function getOrCreateUser(telegramId) {
         .single();
 
       if (updateError) {
-        console.log("Ошибка обновления telegram_id:", updateError);
+        logger.error("Ошибка обновления telegram_id", updateError);
         return existingUser;
       }
 
@@ -51,7 +65,7 @@ async function getOrCreateUser(telegramId) {
     .single();
 
   if (insertError) {
-    console.log("Ошибка создания пользователя:", insertError);
+    logger.error("Ошибка создания пользователя", insertError);
     return null;
   }
 
@@ -59,16 +73,11 @@ async function getOrCreateUser(telegramId) {
 }
 
 async function getOrCreateKakaoUser(kakaoUserId) {
-  const userHash = hashUserId(`kakao:${kakaoUserId}`);
-
-  const { data: existingUser, error: selectError } = await supabase
-    .from("users")
-    .select("*")
-    .eq("user_hash", userHash)
-    .maybeSingle();
+  const identity = `kakao:${kakaoUserId}`;
+  const { user: existingUser, userHash, error: selectError } = await findAndMigrateUser(identity);
 
   if (selectError) {
-    console.log("Ошибка поиска пользователя Kakao:", selectError);
+    logger.error("Ошибка поиска пользователя Kakao", selectError);
     return null;
   }
 
@@ -88,7 +97,7 @@ async function getOrCreateKakaoUser(kakaoUserId) {
     .single();
 
   if (insertError) {
-    console.log("Ошибка создания пользователя Kakao:", insertError);
+    logger.error("Ошибка создания пользователя Kakao", insertError);
     return null;
   }
 

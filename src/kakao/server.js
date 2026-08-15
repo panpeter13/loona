@@ -1,7 +1,19 @@
 const express = require("express");
+const crypto = require("crypto");
+const fs = require("fs");
 const path = require("path");
 const logger = require("../utils/logger");
 const { handleKakaoSkill } = require("./skillHandler");
+
+function validWebhookSecret(value) {
+  const expected = process.env.KAKAO_WEBHOOK_SECRET;
+  if (!expected || !value) return false;
+  const actualBuffer = Buffer.from(String(value));
+  const expectedBuffer = Buffer.from(expected);
+  return expectedBuffer.length >= 32
+    && actualBuffer.length === expectedBuffer.length
+    && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+}
 
 function createApp() {
   const app = express();
@@ -13,10 +25,20 @@ function createApp() {
   });
 
   app.get("/privacy", (_req, res) => {
-    res.sendFile(path.join(__dirname, "../../public/privacy.html"));
+    const privacyFile = path.resolve(__dirname, "../../public/privacy.html");
+    res.type("html");
+    fs.createReadStream(privacyFile).on("error", (error) => {
+      logger.error("Privacy page unavailable", error);
+      if (!res.headersSent) res.status(404).json({ error: "not_found" });
+      else res.destroy();
+    }).pipe(res);
   });
 
   app.post("/kakao/skill", async (req, res) => {
+    if (!validWebhookSecret(req.query.token)) {
+      logger.warn("Rejected unauthenticated Kakao skill request");
+      return res.status(401).json({ error: "unauthorized" });
+    }
     try {
       res.json(await handleKakaoSkill(req.body));
     } catch (error) {
@@ -38,4 +60,4 @@ function startKakaoServer() {
   });
 }
 
-module.exports = { createApp, startKakaoServer };
+module.exports = { createApp, startKakaoServer, validWebhookSecret };

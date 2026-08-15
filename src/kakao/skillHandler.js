@@ -294,6 +294,7 @@ async function handleKakaoSkill(body, dependencies = {}) {
   if (action.name === "partner-code") {
     const result = await deps.connectPartner(user, action.value);
     if (result.error) return localizedResponse(c.noUser, user);
+    if (result.rateLimited) return localizedResponse(c.codeMissing, user);
     if (result.notFound) return localizedResponse(c.codeMissing, user);
     if (result.self) return localizedResponse(c.selfLink, user);
     user = { ...user, mode: "partner", linked_user_id: true };
