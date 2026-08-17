@@ -271,6 +271,16 @@ async function run() {
     assert.equal(privacy.status, 200);
     assert.match(await privacy.text(), /PAN PETR/);
 
+    const landing = await fetch(`http://127.0.0.1:${port}/kakao`);
+    assert.equal(landing.status, 200);
+    const landingHtml = await landing.text();
+    assert.match(landingHtml, /편안하게/);
+    assert.match(landingHtml, /pf\.kakao\.com\/_xfltxnX\/chat/);
+
+    const hero = await fetch(`http://127.0.0.1:${port}/assets/loona-kakao-hero.png`);
+    assert.equal(hero.status, 200);
+    assert.equal(hero.headers.get("content-type"), "image/png");
+
     const unauthorized = await fetch(`http://127.0.0.1:${port}/kakao/skill`, {
       method: "POST",
       headers: { "content-type": "application/json" },

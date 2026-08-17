@@ -26,8 +26,8 @@ excluding Railway and creative production.
 
 | Campaign | Creative | Budget share | Purpose |
 | --- | --- | ---: | --- |
-| `kr_cycle_care_a` | `creative-a-cycle-care.png` | 45% | Gentle cycle tracking |
-| `kr_privacy_b` | `creative-b-privacy.png` | 45% | Privacy and reassurance |
+| `kr_cycle_care_a` | `creative-a-cycle-care-v2.png` | 45% | Gentle cycle tracking |
+| `kr_privacy_b` | `creative-b-privacy-v2.png` | 45% | Privacy and reassurance |
 | Reserve | Winning creative | 10% | Scale after day 5 |
 
 Target: South Korea, women 20–39. Begin broadly; do not target or infer health
@@ -38,14 +38,25 @@ conditions, pregnancy, fertility problems or cycle status.
 ### A — gentle tracking
 
 - Headline: `LOONA 베타 테스트에 참여해 주세요`
+- Asset title: `복잡하지 않은 주기 기록`
 - Body: `복잡하지 않게 주기를 기록하는 LOONA를 테스트하고 솔직한 의견을 들려주세요. 현재 베타 버전이며 기능이 변경되거나 오류가 있을 수 있어요.`
 - CTA: `무료로 테스트하기`
 
 ### B — privacy
 
 - Headline: `함께 만드는 LOONA 베타`
+- Asset title: `필요한 정보만 안전하게 관리해요`
 - Body: `주기 기록에 필요한 정보만 사용하고 원할 때 직접 삭제할 수 있어요. 아직 테스트 중인 서비스에 참여하고 개선 의견을 보내주세요.`
 - CTA: `베타 테스트 참여하기`
+
+The main headline and asset title must remain different. Use two separate
+single-image creatives rather than a carousel with duplicated slide assets.
+
+## Destination
+
+Use the production HTTPS URL ending in `/kakao`. The page explains the beta,
+features, data handling and medical disclaimer, and links to the public LOONA
+Kakao channel at `https://pf.kakao.com/_xfltxnX/chat`.
 
 Required disclaimer on the destination/profile: `예측은 참고용이며 의료 조언이 아닙니다.`
 The ad and destination must keep the beta disclosure visible; do not present the

@@ -19,6 +19,11 @@ function createApp() {
   const app = express();
   app.disable("x-powered-by");
   app.use(express.json({ limit: "256kb" }));
+  app.use("/assets", express.static(path.resolve(__dirname, "../../public/assets"), {
+    fallthrough: false,
+    immutable: true,
+    maxAge: "7d",
+  }));
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true, service: "loona", version: require("../../package.json").version });
@@ -29,6 +34,16 @@ function createApp() {
     res.type("html");
     fs.createReadStream(privacyFile).on("error", (error) => {
       logger.error("Privacy page unavailable", error);
+      if (!res.headersSent) res.status(404).json({ error: "not_found" });
+      else res.destroy();
+    }).pipe(res);
+  });
+
+  app.get("/kakao", (_req, res) => {
+    const landingFile = path.resolve(__dirname, "../../public/kakao.html");
+    res.type("html");
+    fs.createReadStream(landingFile).on("error", (error) => {
+      logger.error("Kakao landing page unavailable", error);
       if (!res.headersSent) res.status(404).json({ error: "not_found" });
       else res.destroy();
     }).pipe(res);
