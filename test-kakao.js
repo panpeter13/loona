@@ -94,6 +94,7 @@ async function testSkillScenarios() {
   const consentPrompt = await handleKakaoSkill(request("주기 시작"), withoutConsent);
   assert.match(text(consentPrompt), /민감정보/);
   assert.equal(consentPrompt.template.quickReplies[0].messageText, "민감정보 처리 동의");
+  assert.equal(consentPrompt.template.quickReplies.at(-1).messageText, "홈");
 
   let createdDate;
   const startResult = await handleKakaoSkill(
@@ -205,7 +206,7 @@ async function testSkillScenarios() {
   );
 
   const feedbackMenu = await handleKakaoSkill(request("의견"), createDependencies());
-  assert.deepEqual(feedbackMenu.template.quickReplies.map((item) => item.messageText), ["기능 제안", "오류 신고"]);
+  assert.deepEqual(feedbackMenu.template.quickReplies.map((item) => item.messageText), ["기능 제안", "오류 신고", "홈"]);
 
   let savedFeedback;
   const feedbackSaved = await handleKakaoSkill(request("의견: 알림 시간을 선택하고 싶어요"), createDependencies({
@@ -223,7 +224,16 @@ async function testSkillScenarios() {
 
   const partnerMenu = await handleKakaoSkill(request("파트너"), createDependencies());
   assert.match(text(partnerMenu), /파트너 모드/);
-  assert.deepEqual(partnerMenu.template.quickReplies.map((item) => item.messageText), ["파트너: 내 프로필", "파트너: 연결"]);
+  assert.deepEqual(partnerMenu.template.quickReplies.map((item) => item.messageText), ["파트너: 내 프로필", "파트너: 연결", "홈"]);
+
+  const settingsMenu = await handleKakaoSkill(request("설정"), createDependencies());
+  assert.equal(settingsMenu.template.quickReplies.at(-1).messageText, "홈");
+
+  const deleteMenu = await handleKakaoSkill(request("내 데이터 삭제"), createDependencies());
+  assert.equal(deleteMenu.template.quickReplies.at(-1).messageText, "홈");
+
+  const languageMenu = await handleKakaoSkill(request("언어"), createDependencies());
+  assert.equal(languageMenu.template.quickReplies.at(-1).messageText, "홈");
 
   const ownProfile = await handleKakaoSkill(request("파트너: 내 프로필"), createDependencies());
   assert.match(text(ownProfile), /ABC123/);

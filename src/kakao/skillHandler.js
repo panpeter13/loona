@@ -268,7 +268,7 @@ async function handleKakaoSkill(body, dependencies = {}) {
     return localizedResponse(c.welcome, user);
   }
   const action = command(utterance);
-  if (action.name === "language") return languageResponse();
+  if (action.name === "language") return languageResponse(user);
   if (action.name === "news") return localizedResponse(neutralNews(c.news) + "\n\n" + c.telegramLink, user);
   if (action.name === "partner") return partnerModeResponse(user);
   if (action.name === "feedback") return feedbackResponse(user);
