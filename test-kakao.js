@@ -122,6 +122,24 @@ async function testSkillScenarios() {
     /^생리 종료 \d{4}-\d{2}-\d{2}$/,
   );
 
+  let pluginDate;
+  await handleKakaoSkill(
+    request("주기 시작", {
+      action: {
+        params: {
+          date: JSON.stringify({ date: "2026-07-18", calendar_type: "solar" }),
+        },
+      },
+    }),
+    createDependencies({
+      createCycle: async (_user, date) => {
+        pluginDate = date;
+        return { error: null };
+      },
+    }),
+  );
+  assert.equal(pluginDate, "2026-07-18");
+
   let createdDate;
   const startResult = await handleKakaoSkill(
     request("주기 시작", {

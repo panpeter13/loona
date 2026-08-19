@@ -187,7 +187,8 @@ function requestedDate(body, utterance, commandPattern, timezone, c) {
   const param = getActionParam(body, ["date", "cycle_date", "period_date", "sys_date"]);
   const fromText = utterance.replace(commandPattern, "").trim()
     .match(/(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4})/)?.[1];
-  const raw = param || fromText;
+  const pluginDate = param?.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+  const raw = pluginDate || param || fromText;
   if (!raw) return { date: getToday(timezone), provided: false };
   const date = parseDate(raw);
   if (!date || !isValidDate(date)) return { error: c.dateFormat };
