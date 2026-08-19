@@ -18,16 +18,16 @@ function registerExportHandlers(bot) {
     }
 
     const json = JSON.stringify(data, null, 2);
+    const captions = {
+      ru: "Ваш экспорт данных LOONA готов.",
+      en: "Your LOONA data export is ready.",
+      ko: "LOONA 데이터 내보내기가 준비됐어요.",
+    };
 
-    if (json.length > 3500) {
-      return ctx.reply(
-        "Данных уже много. Позже сделаем экспорт файлом JSON. Пока Telegram душит длинные сообщения, как бюрократ справку.",
-      );
-    }
-
-    return ctx.reply(`Ваши данные:\n\n\`\`\`json\n${json}\n\`\`\``, {
-      parse_mode: "Markdown",
-    });
+    return ctx.replyWithDocument(
+      { source: Buffer.from(json, "utf8"), filename: "loona-data.json" },
+      { caption: captions[user.language] || captions.ru },
+    );
   });
 }
 

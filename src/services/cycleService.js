@@ -50,6 +50,17 @@ async function createCycle(user, date) {
     cycle_length: user.cycle_length || 28,
     period_length: user.period_length || 5,
   }).select().single();
+
+  // The lookup above improves the normal response, but it cannot prevent two
+  // concurrent webhook deliveries from inserting the same start date. The
+  // database unique constraint is the source of truth for that race.
+  if (result.error?.code === "23505") {
+    const duplicate = await getCycleByStart(user.id, date);
+    if (!duplicate.error && duplicate.data) {
+      return { data: duplicate.data, error: null, duplicate: true };
+    }
+  }
+
   return { ...result, duplicate: false };
 }
 
@@ -59,7 +70,8 @@ async function closeCycle(cycleId, date) {
     .update({
       period_end: date,
     })
-    .eq("id", cycleId);
+    .eq("id", cycleId)
+    .is("period_end", null);
 }
 
 async function deleteCycle(cycleId) {

@@ -114,7 +114,7 @@ function registerTextHandler(bot) {
         );
       }
 
-      const { error } = await createCycle(user, date);
+      const { error, duplicate } = await createCycle(user, date);
 
       if (error) {
         logger.error("Ошибка ручного начала", error);
@@ -122,6 +122,13 @@ function registerTextHandler(bot) {
       }
 
       delete userStates[ctx.from.id];
+
+      if (duplicate) {
+        return ctx.reply(
+          `Начало ${date} уже есть в истории — повторно не сохраняю.`,
+          mainKeyboard(user),
+        );
+      }
 
       return ctx.reply(`Записала начало: ${date} 🌙`, mainKeyboard(user));
     }

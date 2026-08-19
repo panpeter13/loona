@@ -9,7 +9,7 @@ const labels = {
     undo: "Отменить последнюю запись", delete: "Удалить мои данные",
     language: "Язык", cancel: "Отмена", back: "Назад",
     own: "Свой профиль", partner: "Партнёр", news: "Новости",
-    privacy: "Приватность", bug: "Сообщить об ошибке", idea: "Предложить идею",
+    privacy: "Приватность", export: "Экспорт данных", bug: "Сообщить об ошибке", idea: "Предложить идею",
     period: "Период", cycle: "Цикл",
   },
   en: {
@@ -20,7 +20,7 @@ const labels = {
     undo: "Undo last entry", delete: "Delete my data",
     language: "Language", cancel: "Cancel", back: "Back",
     own: "Personal profile", partner: "Partner", news: "News",
-    privacy: "Privacy", bug: "Report a bug", idea: "Suggest an idea",
+    privacy: "Privacy", export: "Export data", bug: "Report a bug", idea: "Suggest an idea",
     period: "Period", cycle: "Cycle",
   },
   ko: {
@@ -31,7 +31,7 @@ const labels = {
     undo: "최근 기록 취소", delete: "내 데이터 삭제",
     language: "언어", cancel: "취소", back: "뒤로",
     own: "개인 프로필", partner: "파트너", news: "소식",
-    privacy: "개인정보", bug: "오류 신고", idea: "아이디어 제안",
+    privacy: "개인정보", export: "데이터 내보내기", bug: "오류 신고", idea: "아이디어 제안",
     period: "생리", cycle: "주기",
   },
 };
@@ -44,7 +44,7 @@ const canonical = {
   undo: "↩️ Отменить последнюю запись", delete: "🗑 Удалить мои данные",
   language: "🌐 Язык", cancel: "❌ Отмена", back: "⬅️ Назад",
   own: "🌙 Свой цикл", partner: "🤝 Партнёр", news: "📢 Новости",
-  privacy: "🔒 Приватность", bug: "🐞 Сообщить об ошибке", idea: "💡 Предложить идею",
+  privacy: "🔒 Приватность", export: "📤 Экспорт данных", bug: "🐞 Сообщить об ошибке", idea: "💡 Предложить идею",
 };
 
 function langOf(userOrLang) {
@@ -102,6 +102,7 @@ function mainKeyboard(user) {
     [styled(l.mode), styled(l.settings)],
     [styled(l.language), styled(l.about)],
     [styled(l.help), styled(l.undo)],
+    [styled(l.export)],
     [styled(l.delete, "danger")],
   ]).resize();
 }
