@@ -170,6 +170,14 @@ async function testSkillScenarios() {
   assert.equal(createdDate, "2026-07-20");
   assert.match(text(startResult), /2026-07-20/);
 
+  const duplicateStart = await handleKakaoSkill(
+    request("주기 시작", { action: { params: { date: "2026-07-20" } } }),
+    createDependencies({
+      createCycle: async () => ({ error: null, duplicate: true }),
+    }),
+  );
+  assert.match(text(duplicateStart), /중복 저장하지 않았어요/);
+
   const futureResult = await handleKakaoSkill(
     request("주기 시작 2099-01-01"),
     createDependencies(),

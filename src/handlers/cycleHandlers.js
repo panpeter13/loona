@@ -22,9 +22,9 @@ const {
 const { getToday } = require("../utils/dateUtils");
 
 const cycleCopy = {
-  ru: { started: (d) => `Записала начало: ${d} 🌙`, ended: (d) => `Записала окончание: ${d} ✅`, noData: "Пока данных нет. Отметьте начало цикла 🌙", chooseStart: "Выберите дату начала:", chooseEnd: "Выберите дату окончания:" },
-  en: { started: (d) => `Start date saved: ${d} 🌙`, ended: (d) => `End date saved: ${d} ✅`, noData: "No data yet. Record the start of your cycle 🌙", chooseStart: "Choose the start date:", chooseEnd: "Choose the end date:" },
-  ko: { started: (d) => `시작일을 기록했어요: ${d} 🌙`, ended: (d) => `종료일을 기록했어요: ${d} ✅`, noData: "아직 기록이 없어요. 주기 시작일을 기록해 주세요 🌙", chooseStart: "시작일을 선택해 주세요:", chooseEnd: "종료일을 선택해 주세요:" },
+  ru: { started: (d) => `Записала начало: ${d} 🌙`, duplicate: (d) => `Начало ${d} уже есть в истории — повторно не сохраняю.`, ended: (d) => `Записала окончание: ${d} ✅`, noData: "Пока данных нет. Отметьте начало цикла 🌙", chooseStart: "Выберите дату начала:", chooseEnd: "Выберите дату окончания:" },
+  en: { started: (d) => `Start date saved: ${d} 🌙`, duplicate: (d) => `The start date ${d} is already in your history, so it was not saved again.`, ended: (d) => `End date saved: ${d} ✅`, noData: "No data yet. Record the start of your cycle 🌙", chooseStart: "Choose the start date:", chooseEnd: "Choose the end date:" },
+  ko: { started: (d) => `시작일을 기록했어요: ${d} 🌙`, duplicate: (d) => `${d} 시작일은 이미 기록되어 있어 중복 저장하지 않았어요.`, ended: (d) => `종료일을 기록했어요: ${d} ✅`, noData: "아직 기록이 없어요. 주기 시작일을 기록해 주세요 🌙", chooseStart: "시작일을 선택해 주세요:", chooseEnd: "종료일을 선택해 주세요:" },
 };
 
 function cFor(user) { return cycleCopy[user?.language] || cycleCopy.ru; }
@@ -73,12 +73,14 @@ function registerCycleHandlers(bot) {
       );
     }
 
-    const { error } = await createCycle(user, today);
+    const { error, duplicate } = await createCycle(user, today);
 
     if (error) {
       logger.error("Ошибка сохранения начала", error);
       return ctx.reply("Не получилось сохранить дату.");
     }
+
+    if (duplicate) return ctx.reply(cFor(user).duplicate(today), mainKeyboard(user));
 
     await notifyPartnersCycleStarted(bot.telegram, user.id);
 
@@ -340,7 +342,7 @@ async function handleCalendarDate(ctx, selectedDate) {
       );
     }
 
-    const { error } = await createCycle(user, selectedDate);
+    const { error, duplicate } = await createCycle(user, selectedDate);
 
     if (error) {
       logger.error("Ошибка сохранения начала", error);
@@ -348,12 +350,16 @@ async function handleCalendarDate(ctx, selectedDate) {
       return ctx.reply("Не получилось сохранить дату.");
     }
 
-    await notifyPartnersCycleStarted(ctx.telegram, user.id);
-
     delete userStates[ctx.from.id];
 
     await ctx.answerCbQuery("Дата выбрана");
     await ctx.editMessageText(`Выбрана дата начала: ${selectedDate}`);
+
+    if (duplicate) {
+      return ctx.reply(cFor(user).duplicate(selectedDate), mainKeyboard(user));
+    }
+
+    await notifyPartnersCycleStarted(ctx.telegram, user.id);
 
     return ctx.reply(cFor(user).started(selectedDate), mainKeyboard(user));
   }

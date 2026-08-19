@@ -50,6 +50,7 @@ const TEXT = {
     openExists: (d) => `Уже есть открытая запись.\n\nНачало: ${d}`,
     noOpen: "Нет открытой записи. Сначала отметьте начало 🌙",
     startSaved: (d) => `Начало записано: ${d} 🌙`,
+    startDuplicate: (d) => `Начало ${d} уже есть в истории — повторно не сохраняю.`,
     endSaved: (d) => `Окончание записано: ${d} ✅`,
     beforeStart: (d) => `Окончание не может быть раньше начала (${d}).`,
     noCycles: "Пока записей нет. Сначала отметьте начало цикла 🌙",
@@ -84,6 +85,7 @@ const TEXT = {
     openExists: (d) => `There is already an open record.\n\nStart: ${d}`,
     noOpen: "There is no open record. Save a start date first 🌙",
     startSaved: (d) => `Start date saved: ${d} 🌙`,
+    startDuplicate: (d) => `The start date ${d} is already in your history, so it was not saved again.`,
     endSaved: (d) => `End date saved: ${d} ✅`,
     beforeStart: (d) => `The end date cannot be before the start (${d}).`,
     noCycles: "No records yet. Save a cycle start first 🌙",
@@ -118,6 +120,7 @@ const TEXT = {
     openExists: (d) => `이미 진행 중인 기록이 있어요.\n\n시작일: ${d}`,
     noOpen: "진행 중인 기록이 없어요. 먼저 시작일을 기록해 주세요 🌙",
     startSaved: (d) => `시작일을 기록했어요: ${d} 🌙`,
+    startDuplicate: (d) => `${d} 시작일은 이미 기록되어 있어 중복 저장하지 않았어요.`,
     endSaved: (d) => `종료일을 기록했어요: ${d} ✅`,
     beforeStart: (d) => `종료일은 시작일(${d})보다 빠를 수 없어요.`,
     noCycles: "아직 기록이 없어요. 주기 시작일을 먼저 기록해 주세요 🌙",
@@ -335,15 +338,15 @@ async function handleKakaoSkill(body, dependencies = {}) {
     if (!requested.provided) {
       return dateSelectionResponse("start", user, requested.date, addDays);
     }
-    const { error: createError } = await deps.createCycle(user, requested.date);
-    if (!createError) {
+    const { error: createError, duplicate } = await deps.createCycle(user, requested.date);
+    if (!createError && !duplicate) {
       await deps.trackEvent(user, "cycle_recorded", attribution);
       if (!user.first_cycle_recorded_at) {
         await deps.markFirstCycle(user.id);
         await deps.trackEvent(user, "first_cycle_recorded", attribution);
       }
     }
-    return localizedResponse(createError ? c.noUser : c.startSaved(requested.date), user);
+    return localizedResponse(createError ? c.noUser : duplicate ? c.startDuplicate(requested.date) : c.startSaved(requested.date), user);
   }
   if (action.name === "end") {
     if (!user.health_data_consent_at) return consentResponse(user);
