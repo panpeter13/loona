@@ -3,6 +3,26 @@ const hashUserId = require("../utils/hashUser");
 const { legacyHashUserId } = hashUserId;
 const logger = require("../utils/logger");
 
+const HEALTH_CONSENT_NOTIFICATION = "health_data_consent";
+
+async function attachHealthDataConsent(user) {
+  if (!user || user.health_data_consent_at !== undefined) return user;
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("created_at")
+    .eq("user_id", user.id)
+    .eq("type", HEALTH_CONSENT_NOTIFICATION)
+    .maybeSingle();
+
+  if (error) {
+    logger.error("Ошибка проверки согласия", error);
+    return { ...user, health_data_consent_at: null };
+  }
+
+  return { ...user, health_data_consent_at: data?.created_at || null };
+}
+
 async function findAndMigrateUser(identity) {
   const userHash = hashUserId(identity);
   const { data: current, error: currentError } = await supabase
@@ -42,13 +62,13 @@ async function getOrCreateUser(telegramId) {
 
       if (updateError) {
         logger.error("Ошибка обновления telegram_id", updateError);
-        return existingUser;
+        return attachHealthDataConsent(existingUser);
       }
 
-      return updatedUser;
+      return attachHealthDataConsent(updatedUser);
     }
 
-    return existingUser;
+    return attachHealthDataConsent(existingUser);
   }
 
   const { data: newUser, error: insertError } = await supabase
@@ -69,7 +89,7 @@ async function getOrCreateUser(telegramId) {
     return null;
   }
 
-  return newUser;
+  return attachHealthDataConsent(newUser);
 }
 
 async function getOrCreateKakaoUser(kakaoUserId) {
@@ -81,7 +101,10 @@ async function getOrCreateKakaoUser(kakaoUserId) {
     return null;
   }
 
-  if (existingUser) return { ...existingUser, _isNew: false };
+  if (existingUser) {
+    const user = await attachHealthDataConsent(existingUser);
+    return { ...user, _isNew: false };
+  }
 
   const { data: newUser, error: insertError } = await supabase
     .from("users")
@@ -101,7 +124,8 @@ async function getOrCreateKakaoUser(kakaoUserId) {
     return null;
   }
 
-  return { ...newUser, _isNew: true };
+  const user = await attachHealthDataConsent(newUser);
+  return { ...user, _isNew: true };
 }
 
 async function updateCycleLength(userId, value) {
@@ -123,10 +147,29 @@ async function updateLanguage(userId, language) {
 }
 
 async function recordHealthDataConsent(userId) {
-  return supabase
+  const result = await supabase
     .from("users")
     .update({ health_data_consent_at: new Date().toISOString() })
     .eq("id", userId)
+    .select()
+    .single();
+
+  const missingConsentColumn =
+    result.error?.code === "42703" ||
+    (result.error?.code === "PGRST204" &&
+      result.error.message?.includes("health_data_consent_at"));
+
+  if (!result.error || !missingConsentColumn) return result;
+
+  // Compatibility fallback for deployments where the consent migration has
+  // not been applied yet. The existing unique (user_id, type) constraint makes
+  // this durable and idempotent.
+  return supabase
+    .from("notifications")
+    .upsert(
+      { user_id: userId, type: HEALTH_CONSENT_NOTIFICATION },
+      { onConflict: "user_id,type", ignoreDuplicates: true },
+    )
     .select()
     .single();
 }
