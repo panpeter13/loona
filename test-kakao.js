@@ -365,6 +365,13 @@ async function run() {
     });
     assert.equal(unauthorized.status, 401);
 
+    const legacyQueryToken = await fetch(`http://127.0.0.1:${port}/kakao/skill?token=${encodeURIComponent(process.env.KAKAO_WEBHOOK_SECRET)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(legacyQueryToken.status, 401);
+
     const kakao = await fetch(`http://127.0.0.1:${port}/kakao/skill`, {
       method: "POST",
       headers: {

@@ -50,7 +50,7 @@ function createApp() {
   });
 
   app.post("/kakao/skill", async (req, res) => {
-    const suppliedSecret = req.get("x-loona-webhook-secret") || req.query.token;
+    const suppliedSecret = req.get("x-loona-webhook-secret");
     if (!validWebhookSecret(suppliedSecret)) {
       logger.warn("Rejected unauthenticated Kakao skill request");
       return res.status(401).json({ error: "unauthorized" });
