@@ -365,9 +365,12 @@ async function run() {
     });
     assert.equal(unauthorized.status, 401);
 
-    const kakao = await fetch(`http://127.0.0.1:${port}/kakao/skill?token=${encodeURIComponent(process.env.KAKAO_WEBHOOK_SECRET)}`, {
+    const kakao = await fetch(`http://127.0.0.1:${port}/kakao/skill`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        "x-loona-webhook-secret": process.env.KAKAO_WEBHOOK_SECRET,
+      },
       body: JSON.stringify({}),
     }).then((res) => res.json());
 

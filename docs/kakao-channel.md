@@ -80,11 +80,13 @@ also accepts `cycle_date`, `period_date`, or `sys_date`, but using one documente
 name keeps the Open Builder configuration easier to audit.
 
 The Railway service needs a public domain. Create a random 32-byte-or-longer
-`KAKAO_WEBHOOK_SECRET` in Railway and register the complete HTTPS URL, including
-the same URL-encoded secret, as the Skill URL in Kakao Chatbot Admin Center:
+`KAKAO_WEBHOOK_SECRET` in Railway and register the HTTPS URL in Kakao Chatbot
+Admin Center. Add the secret through the Skill header settings so it does not
+appear in URL or access logs:
 
 ```text
-https://<domain>/kakao/skill?token=<KAKAO_WEBHOOK_SECRET>
+URL: https://<domain>/kakao/skill
+Header: X-LOONA-Webhook-Secret: <KAKAO_WEBHOOK_SECRET>
 ```
 
 Requests without the matching token return HTTP 401 before any user data is
@@ -112,6 +114,7 @@ After deployment, verify the public endpoints:
 ```bash
 curl https://<domain>/health
 curl -X POST https://<domain>/kakao/skill \
+  -H "X-LOONA-Webhook-Secret: $KAKAO_WEBHOOK_SECRET" \
   -H 'content-type: application/json' \
   -d '{"userRequest":{"utterance":"시작","user":{"id":"manual-test-user"}}}'
 ```
