@@ -141,6 +141,7 @@ function predictCycle(cycles, user = {}) {
     ovulationWindowEnd,
     fertileWindowStart,
     fertileWindowEnd,
+    recordedCycles: sortedCycles.length,
     cyclesUsed: validLengths.length,
     variabilityDays,
     uncertaintyDays,

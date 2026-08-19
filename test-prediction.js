@@ -7,6 +7,7 @@ function starts(...dates) {
 
 const preliminary = predictCycle(starts("2026-07-01"), { cycle_length: 28, period_length: 5 });
 assert.equal(preliminary.confidence, "preliminary");
+assert.equal(preliminary.recordedCycles, 1);
 assert.equal(preliminary.nextPeriodStart, "2026-07-29");
 assert.equal(preliminary.nextPeriodStartRangeStart, "2026-07-25");
 assert.equal(preliminary.ovulationDate, null);
@@ -16,6 +17,7 @@ const stable = predictCycle(
   {},
 );
 assert.equal(stable.averageCycleLength, 28);
+assert.equal(stable.recordedCycles, 7);
 assert.equal(stable.confidence, "improved");
 assert.equal(stable.isVariable, false);
 assert.ok(stable.ovulationWindowStart);
