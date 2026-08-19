@@ -18,6 +18,7 @@ async function attachHealthDataConsent(user) {
     .select("created_at")
     .eq("user_id", user.id)
     .eq("type", HEALTH_CONSENT_NOTIFICATION)
+    .limit(1)
     .maybeSingle();
 
   if (error) {
@@ -191,15 +192,22 @@ async function recordHealthDataConsent(userId) {
 
   if (!result.error || !missingConsentColumn) return result;
 
-  // Compatibility fallback for deployments where the consent migration has
-  // not been applied yet. The existing unique (user_id, type) constraint makes
-  // this durable and idempotent.
+  // Compatibility fallback for deployments where the consent migration and
+  // the notification uniqueness constraint have not been applied yet.
+  const existing = await supabase
+    .from("notifications")
+    .select("id, created_at")
+    .eq("user_id", userId)
+    .eq("type", HEALTH_CONSENT_NOTIFICATION)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing.error) return existing;
+  if (existing.data) return { data: existing.data, error: null };
+
   return supabase
     .from("notifications")
-    .upsert(
-      { user_id: userId, type: HEALTH_CONSENT_NOTIFICATION },
-      { onConflict: "user_id,type", ignoreDuplicates: true },
-    )
+    .insert({ user_id: userId, type: HEALTH_CONSENT_NOTIFICATION })
     .select()
     .single();
 }
