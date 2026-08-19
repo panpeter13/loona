@@ -140,6 +140,21 @@ async function testSkillScenarios() {
   );
   assert.equal(pluginDate, "2026-07-18");
 
+  let intentPluginDate;
+  await handleKakaoSkill(
+    request("July 17, 2026 (Fri)", {
+      intent: { name: "주기 시작 날짜 선택" },
+      action: { params: { date: "2026-07-17" } },
+    }),
+    createDependencies({
+      createCycle: async (_user, date) => {
+        intentPluginDate = date;
+        return { error: null };
+      },
+    }),
+  );
+  assert.equal(intentPluginDate, "2026-07-17");
+
   let createdDate;
   const startResult = await handleKakaoSkill(
     request("주기 시작", {

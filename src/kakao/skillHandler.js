@@ -217,8 +217,8 @@ function command(utterance) {
     ["Согласие на обработку", "consent"], ["Health data consent", "consent"], ["민감정보 처리 동의", "consent"],
   ]);
   if (exact.has(utterance)) return { name: exact.get(utterance) };
-  if (/^(Начать цикл|Start cycle|주기 시작)(?:\s|$)/i.test(utterance)) return { name: "start", pattern: /^(Начать цикл|Start cycle|주기 시작)/i };
-  if (/^(Завершить|Finish|생리 종료)(?:\s|$)/i.test(utterance)) return { name: "end", pattern: /^(Завершить|Finish|생리 종료)/i };
+  if (/^(Начать цикл|Указать дату начала|Start cycle|Choose start date|주기 시작|시작일 선택)(?:\s|$)/i.test(utterance)) return { name: "start", pattern: /^(Начать цикл|Указать дату начала|Start cycle|Choose start date|주기 시작|시작일 선택)/i };
+  if (/^(Завершить|Указать дату окончания|Finish|Choose finish date|생리 종료|종료일 선택)(?:\s|$)/i.test(utterance)) return { name: "end", pattern: /^(Завершить|Указать дату окончания|Finish|Choose finish date|생리 종료|종료일 선택)/i };
   const partnerCode = utterance.match(/^(?:Код|Code|파트너 코드)\s+([A-Z0-9]{6})$/i);
   if (partnerCode) return { name: "partner-code", value: partnerCode[1].toUpperCase() };
   const setting = utterance.match(/^(?:Цикл|Cycle|주기)\s*(\d{2})(?:\s*(?:дн\.?|days?|일))?$/i);
@@ -269,7 +269,15 @@ async function handleKakaoSkill(body, dependencies = {}) {
   if (!utterance || /^(старт|start|시작|처음|안녕)(?:\s+ad[_-][a-z0-9_-]{1,40})?$/i.test(utterance)) {
     return localizedResponse(c.welcome, user);
   }
-  const action = command(utterance);
+  let action = command(utterance);
+  if (action.name === "unknown" && getActionParam(body, ["date", "sys_date"])) {
+    const intentName = String(body?.intent?.name || "");
+    if (/주기 시작 날짜 선택|start/i.test(intentName)) {
+      action = { name: "start", pattern: /^$/ };
+    } else if (/생리 종료 날짜 선택|finish|end/i.test(intentName)) {
+      action = { name: "end", pattern: /^$/ };
+    }
+  }
   if (action.name === "language") return languageResponse(user);
   if (action.name === "news") return localizedResponse(neutralNews(c.news) + "\n\n" + c.telegramLink, user);
   if (action.name === "partner") return partnerModeResponse(user);
