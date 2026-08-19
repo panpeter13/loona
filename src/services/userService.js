@@ -5,6 +5,11 @@ const logger = require("../utils/logger");
 
 const HEALTH_CONSENT_NOTIFICATION = "health_data_consent";
 
+function isMissingColumn(error, column) {
+  return error?.code === "42703" ||
+    (error?.code === "PGRST204" && error.message?.includes(column));
+}
+
 async function attachHealthDataConsent(user) {
   if (!user || user.health_data_consent_at !== undefined) return user;
 
@@ -71,7 +76,7 @@ async function getOrCreateUser(telegramId) {
     return attachHealthDataConsent(existingUser);
   }
 
-  const { data: newUser, error: insertError } = await supabase
+  let { data: newUser, error: insertError } = await supabase
     .from("users")
     .insert({
       user_hash: userHash,
@@ -83,6 +88,20 @@ async function getOrCreateUser(telegramId) {
     })
     .select()
     .single();
+
+  if (isMissingColumn(insertError, "platform")) {
+    ({ data: newUser, error: insertError } = await supabase
+      .from("users")
+      .insert({
+        user_hash: userHash,
+        telegram_id: telegramId,
+        language: "ru",
+        cycle_length: 28,
+        period_length: 5,
+      })
+      .select()
+      .single());
+  }
 
   if (insertError) {
     logger.error("Ошибка создания пользователя", insertError);
@@ -106,7 +125,7 @@ async function getOrCreateKakaoUser(kakaoUserId) {
     return { ...user, _isNew: false };
   }
 
-  const { data: newUser, error: insertError } = await supabase
+  let { data: newUser, error: insertError } = await supabase
     .from("users")
     .insert({
       user_hash: userHash,
@@ -118,6 +137,20 @@ async function getOrCreateKakaoUser(kakaoUserId) {
     })
     .select()
     .single();
+
+  if (isMissingColumn(insertError, "platform")) {
+    ({ data: newUser, error: insertError } = await supabase
+      .from("users")
+      .insert({
+        user_hash: userHash,
+        language: "select",
+        timezone: "Asia/Seoul",
+        cycle_length: 28,
+        period_length: 5,
+      })
+      .select()
+      .single());
+  }
 
   if (insertError) {
     logger.error("Ошибка создания пользователя Kakao", insertError);
@@ -154,10 +187,7 @@ async function recordHealthDataConsent(userId) {
     .select()
     .single();
 
-  const missingConsentColumn =
-    result.error?.code === "42703" ||
-    (result.error?.code === "PGRST204" &&
-      result.error.message?.includes("health_data_consent_at"));
+  const missingConsentColumn = isMissingColumn(result.error, "health_data_consent_at");
 
   if (!result.error || !missingConsentColumn) return result;
 
