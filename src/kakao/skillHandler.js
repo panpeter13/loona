@@ -2,6 +2,7 @@ const {
   response,
   localizedResponse,
   consentResponse,
+  dateSelectionResponse,
   settingsResponse,
   deleteConfirmationResponse,
   languageResponse,
@@ -28,7 +29,7 @@ const {
 const { predictCycle } = require("../services/predictionService");
 const { formatPrediction } = require("../services/predictionText");
 const { getDashboardText } = require("../services/dashboardService");
-const { getToday, parseDate, isValidDate, isFutureDate } = require("../utils/dateUtils");
+const { getToday, addDays, parseDate, isValidDate, isFutureDate } = require("../utils/dateUtils");
 const { deleteUserData } = require("../services/dataDeletionService");
 const { enablePersonalMode, enablePartnerMode, connectPartner } = require("../services/partnerService");
 const {
@@ -187,11 +188,11 @@ function requestedDate(body, utterance, commandPattern, timezone, c) {
   const fromText = utterance.replace(commandPattern, "").trim()
     .match(/(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4})/)?.[1];
   const raw = param || fromText;
-  if (!raw) return { date: getToday(timezone) };
+  if (!raw) return { date: getToday(timezone), provided: false };
   const date = parseDate(raw);
   if (!date || !isValidDate(date)) return { error: c.dateFormat };
   if (isFutureDate(date, timezone)) return { error: c.future };
-  return { date };
+  return { date, provided: true };
 }
 function command(utterance) {
   const exact = new Map([
@@ -322,6 +323,9 @@ async function handleKakaoSkill(body, dependencies = {}) {
     if (open) return localizedResponse(c.openExists(open.period_start), user);
     const requested = requestedDate(body, utterance, action.pattern, user.timezone, c);
     if (requested.error) return localizedResponse(requested.error, user);
+    if (!requested.provided) {
+      return dateSelectionResponse("start", user, requested.date, addDays);
+    }
     const { error: createError } = await deps.createCycle(user, requested.date);
     if (!createError) {
       await deps.trackEvent(user, "cycle_recorded", attribution);
@@ -339,6 +343,9 @@ async function handleKakaoSkill(body, dependencies = {}) {
     if (!open) return localizedResponse(c.noOpen, user);
     const requested = requestedDate(body, utterance, action.pattern, user.timezone, c);
     if (requested.error) return localizedResponse(requested.error, user);
+    if (!requested.provided) {
+      return dateSelectionResponse("end", user, requested.date, addDays);
+    }
     if (requested.date < open.period_start) return localizedResponse(c.beforeStart(open.period_start), user);
     const { error: closeError } = await deps.closeCycle(open.id, requested.date);
     return localizedResponse(closeError ? c.noUser : c.endSaved(requested.date), user);

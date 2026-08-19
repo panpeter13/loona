@@ -124,6 +124,42 @@ function consentResponse(userOrLanguage) {
   return response(COPY[language].consent, [...COPY[language].consentButtons, COPY[language].homeButton]);
 }
 
+function dateSelectionResponse(action, userOrLanguage, today, addDays) {
+  const language = languageOf(userOrLanguage);
+  const content = {
+    ru: {
+      text: action === "start"
+        ? "📅 Выберите дату начала цикла\n\nЕсли нужной даты нет, напишите: Начать цикл ГГГГ-ММ-ДД"
+        : "📅 Выберите дату окончания\n\nЕсли нужной даты нет, напишите: Завершить ГГГГ-ММ-ДД",
+      command: action === "start" ? "Начать цикл" : "Завершить",
+      today: "Сегодня",
+    },
+    en: {
+      text: action === "start"
+        ? "📅 Choose the cycle start date\n\nFor an older date, type: Start cycle YYYY-MM-DD"
+        : "📅 Choose the finish date\n\nFor an older date, type: Finish YYYY-MM-DD",
+      command: action === "start" ? "Start cycle" : "Finish",
+      today: "Today",
+    },
+    ko: {
+      text: action === "start"
+        ? "📅 주기 시작일을 선택해 주세요\n\n더 이전 날짜는 다음과 같이 입력해 주세요: 주기 시작 YYYY-MM-DD"
+        : "📅 생리 종료일을 선택해 주세요\n\n더 이전 날짜는 다음과 같이 입력해 주세요: 생리 종료 YYYY-MM-DD",
+      command: action === "start" ? "주기 시작" : "생리 종료",
+      today: "오늘",
+    },
+  }[language];
+
+  const buttons = Array.from({ length: 8 }, (_, index) => {
+    const date = addDays(today, -index);
+    const [, month, day] = date.split("-");
+    const label = index === 0 ? `${content.today} · ${month}.${day}` : `${month}.${day}`;
+    return [label, `${content.command} ${date}`];
+  });
+
+  return response(content.text, [...buttons, COPY[language].homeButton]);
+}
+
 function settingsResponse(user) {
   const language = languageOf(user);
   return response(COPY[language].settings(user), COPY[language].settingsButtons);
@@ -170,6 +206,7 @@ module.exports = {
   response,
   localizedResponse,
   consentResponse,
+  dateSelectionResponse,
   settingsResponse,
   deleteConfirmationResponse,
   languageResponse,

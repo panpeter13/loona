@@ -96,6 +96,32 @@ async function testSkillScenarios() {
   assert.equal(consentPrompt.template.quickReplies[0].messageText, "민감정보 처리 동의");
   assert.equal(consentPrompt.template.quickReplies.at(-1).messageText, "홈");
 
+  const startDatePicker = await handleKakaoSkill(
+    request("주기 시작"),
+    createDependencies(),
+  );
+  assert.match(text(startDatePicker), /시작일을 선택/);
+  assert.equal(startDatePicker.template.quickReplies.length, 9);
+  assert.match(
+    startDatePicker.template.quickReplies[0].messageText,
+    /^주기 시작 \d{4}-\d{2}-\d{2}$/,
+  );
+
+  const endDatePicker = await handleKakaoSkill(
+    request("생리 종료"),
+    createDependencies({
+      getOpenCycle: async () => ({
+        data: { id: 7, period_start: "2026-07-20" },
+        error: null,
+      }),
+    }),
+  );
+  assert.match(text(endDatePicker), /종료일을 선택/);
+  assert.match(
+    endDatePicker.template.quickReplies[0].messageText,
+    /^생리 종료 \d{4}-\d{2}-\d{2}$/,
+  );
+
   let createdDate;
   const startResult = await handleKakaoSkill(
     request("주기 시작", {
