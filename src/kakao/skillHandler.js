@@ -3,6 +3,7 @@ const {
   localizedResponse,
   consentResponse,
   dateSelectionResponse,
+  dateConfirmationResponse,
   settingsResponse,
   deleteConfirmationResponse,
   languageResponse,
@@ -342,6 +343,9 @@ async function handleKakaoSkill(body, dependencies = {}) {
     if (!requested.provided) {
       return dateSelectionResponse("start", user, requested.date, addDays);
     }
+    if (getActionParam(body, ["date", "sys_date"])) {
+      return dateConfirmationResponse("start", requested.date, user);
+    }
     const { error: createError, duplicate } = await deps.createCycle(user, requested.date);
     if (!createError && !duplicate) {
       await deps.trackEvent(user, "cycle_recorded", attribution);
@@ -363,6 +367,9 @@ async function handleKakaoSkill(body, dependencies = {}) {
       return dateSelectionResponse("end", user, requested.date, addDays);
     }
     if (requested.date < open.period_start) return localizedResponse(c.beforeStart(open.period_start), user);
+    if (getActionParam(body, ["date", "sys_date"])) {
+      return dateConfirmationResponse("end", requested.date, user);
+    }
     const { error: closeError } = await deps.closeCycle(open.id, requested.date);
     return localizedResponse(closeError ? c.noUser : c.endSaved(requested.date), user);
   }

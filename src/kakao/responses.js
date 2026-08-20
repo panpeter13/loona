@@ -160,6 +160,29 @@ function dateSelectionResponse(action, userOrLanguage, today, addDays) {
   return response(content.text, [...buttons, COPY[language].homeButton]);
 }
 
+function dateConfirmationResponse(action, date, userOrLanguage) {
+  const language = languageOf(userOrLanguage);
+  const content = {
+    ru: {
+      text: `${action === "start" ? "Дата начала цикла" : "Дата окончания"}: ${date}\n\nВсё верно?`,
+      yes: ["✅ Да, сохранить", `${action === "start" ? "Начать цикл" : "Завершить"} ${date}`],
+      no: ["↩️ Нет, выбрать другую", action === "start" ? "Указать дату начала" : "Указать дату окончания"],
+    },
+    en: {
+      text: `${action === "start" ? "Cycle start date" : "Finish date"}: ${date}\n\nIs this correct?`,
+      yes: ["✅ Yes, save", `${action === "start" ? "Start cycle" : "Finish"} ${date}`],
+      no: ["↩️ No, choose another", action === "start" ? "Choose start date" : "Choose finish date"],
+    },
+    ko: {
+      text: `${action === "start" ? "주기 시작일" : "생리 종료일"}: ${date}\n\n이 날짜가 맞나요?`,
+      yes: ["✅ 네, 저장", `${action === "start" ? "주기 시작" : "생리 종료"} ${date}`],
+      no: ["↩️ 아니요, 다시 선택", action === "start" ? "시작일 선택" : "종료일 선택"],
+    },
+  }[language];
+
+  return response(content.text, [content.yes, content.no, COPY[language].homeButton]);
+}
+
 function settingsResponse(user) {
   const language = languageOf(user);
   return response(COPY[language].settings(user), COPY[language].settingsButtons);
@@ -207,6 +230,7 @@ module.exports = {
   localizedResponse,
   consentResponse,
   dateSelectionResponse,
+  dateConfirmationResponse,
   settingsResponse,
   deleteConfirmationResponse,
   languageResponse,

@@ -123,7 +123,7 @@ async function testSkillScenarios() {
   );
 
   let pluginDate;
-  await handleKakaoSkill(
+  const pluginConfirmation = await handleKakaoSkill(
     request("주기 시작", {
       action: {
         params: {
@@ -138,10 +138,26 @@ async function testSkillScenarios() {
       },
     }),
   );
+  assert.equal(pluginDate, undefined);
+  assert.match(text(pluginConfirmation), /2026-07-18/);
+  assert.deepEqual(
+    pluginConfirmation.template.quickReplies.map((item) => item.messageText),
+    ["주기 시작 2026-07-18", "시작일 선택", "홈"],
+  );
+
+  await handleKakaoSkill(
+    request("주기 시작 2026-07-18"),
+    createDependencies({
+      createCycle: async (_user, date) => {
+        pluginDate = date;
+        return { error: null };
+      },
+    }),
+  );
   assert.equal(pluginDate, "2026-07-18");
 
   let intentPluginDate;
-  await handleKakaoSkill(
+  const intentConfirmation = await handleKakaoSkill(
     request("July 17, 2026 (Fri)", {
       intent: { name: "주기 시작 날짜 선택" },
       action: { params: { date: "2026-07-17" } },
@@ -153,7 +169,8 @@ async function testSkillScenarios() {
       },
     }),
   );
-  assert.equal(intentPluginDate, "2026-07-17");
+  assert.equal(intentPluginDate, undefined);
+  assert.match(text(intentConfirmation), /이 날짜가 맞나요/);
 
   let calendarBlockStarted = false;
   let calendarBlockEnded = false;
@@ -179,9 +196,7 @@ async function testSkillScenarios() {
 
   let createdDate;
   const startResult = await handleKakaoSkill(
-    request("주기 시작", {
-      action: { params: { date: "2026-07-20" } },
-    }),
+    request("주기 시작 2026-07-20"),
     createDependencies({
       createCycle: async (_user, date) => {
         createdDate = date;
@@ -193,7 +208,7 @@ async function testSkillScenarios() {
   assert.match(text(startResult), /2026-07-20/);
 
   const duplicateStart = await handleKakaoSkill(
-    request("주기 시작", { action: { params: { date: "2026-07-20" } } }),
+    request("주기 시작 2026-07-20"),
     createDependencies({
       createCycle: async () => ({ error: null, duplicate: true }),
     }),
