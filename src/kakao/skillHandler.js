@@ -274,10 +274,14 @@ async function handleKakaoSkill(body, dependencies = {}) {
   }
   let action = command(utterance);
   if (action.name === "unknown" && getActionParam(body, ["date", "sys_date"])) {
-    const intentName = String(body?.intent?.name || "");
-    if (/주기 시작 날짜 선택|start/i.test(intentName)) {
+    const intentName = String(body?.intent?.name || "").trim();
+    const isStartIntent = intentName === "주기 시작 날짜 선택" ||
+      /(?:^|[\s_-])start(?:$|[\s_-])/i.test(intentName);
+    const isEndIntent = intentName === "생리 종료 날짜 선택" ||
+      /(?:^|[\s_-])(?:finish|end)(?:$|[\s_-])/i.test(intentName);
+    if (isStartIntent) {
       action = { name: "start", pattern: /^$/ };
-    } else if (/생리 종료 날짜 선택|finish|end/i.test(intentName)) {
+    } else if (isEndIntent) {
       action = { name: "end", pattern: /^$/ };
     }
   }

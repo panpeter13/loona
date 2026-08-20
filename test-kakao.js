@@ -155,6 +155,28 @@ async function testSkillScenarios() {
   );
   assert.equal(intentPluginDate, "2026-07-17");
 
+  let calendarBlockStarted = false;
+  let calendarBlockEnded = false;
+  const ambiguousCalendarResult = await handleKakaoSkill(
+    request("July 16, 2026 (Thu)", {
+      intent: { name: "Calendar Block" },
+      action: { params: { date: "2026-07-16" } },
+    }),
+    createDependencies({
+      createCycle: async () => {
+        calendarBlockStarted = true;
+        return { error: null };
+      },
+      closeCycle: async () => {
+        calendarBlockEnded = true;
+        return { error: null };
+      },
+    }),
+  );
+  assert.equal(calendarBlockStarted, false);
+  assert.equal(calendarBlockEnded, false);
+  assert.match(text(ambiguousCalendarResult), /원하는 기능/);
+
   let createdDate;
   const startResult = await handleKakaoSkill(
     request("주기 시작", {

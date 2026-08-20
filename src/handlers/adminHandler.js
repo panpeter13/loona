@@ -83,12 +83,14 @@ function registerAdminHandler(bot) {
     if (!isAdmin(ctx)) return ctx.reply("Команда недоступна.");
     try {
       const s = await getGrowthSummary();
-      const activation = s.kakaoOwners ? Math.round((s.activated / s.kakaoOwners) * 100) : 0;
+      const onboardingRate = s.kakaoProfiles ? Math.round((s.onboarded / s.kakaoProfiles) * 100) : 0;
+      const activationRate = s.onboarded ? Math.round((s.firstCycle / s.onboarded) * 100) : 0;
       return ctx.reply(
         `📊 LOONA — воронка Kakao\n\n` +
-        `Основные пользователи: ${s.kakaoOwners}\n` +
-        `Записали первый цикл: ${s.activated} (${activation}%)\n` +
-        `Активны за 7 дней: ${s.active7d}\n` +
+        `Создано профилей: ${s.kakaoProfiles}\n` +
+        `Завершили онбординг: ${s.onboarded} (${onboardingRate}%)\n` +
+        `Записали первый цикл: ${s.firstCycle} (${activationRate}% от онбординга)\n` +
+        `Активны за 7 дней после онбординга: ${s.active7d}\n` +
         `Партнёры: ${s.kakaoPartners}\n` +
         `Plus: ${s.paid}\n\n` +
         `Telegram (основные): ${s.telegramOwners}`,

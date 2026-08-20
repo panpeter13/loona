@@ -58,15 +58,16 @@ async function countUsers(filters = []) {
 
 async function getGrowthSummary() {
   const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
-  const [kakaoOwners, kakaoPartners, activated, active7d, paid, telegramOwners] = await Promise.all([
+  const [kakaoProfiles, kakaoPartners, onboarded, firstCycle, active7d, paid, telegramOwners] = await Promise.all([
     countUsers([["platform", "eq", "kakao"], ["mode", "eq", "female"]]),
     countUsers([["platform", "eq", "kakao"], ["mode", "eq", "partner"]]),
+    countUsers([["platform", "eq", "kakao"], ["mode", "eq", "female"], ["onboarding_completed_at", "not", "is", null]]),
     countUsers([["platform", "eq", "kakao"], ["mode", "eq", "female"], ["first_cycle_recorded_at", "not", "is", null]]),
-    countUsers([["platform", "eq", "kakao"], ["mode", "eq", "female"], ["last_active_at", "gte", since7d]]),
+    countUsers([["platform", "eq", "kakao"], ["mode", "eq", "female"], ["onboarding_completed_at", "not", "is", null], ["last_active_at", "gte", since7d]]),
     countUsers([["platform", "eq", "kakao"], ["mode", "eq", "female"], ["subscription_status", "eq", "plus"]]),
     countUsers([["platform", "eq", "telegram"], ["mode", "eq", "female"]]),
   ]);
-  return { kakaoOwners, kakaoPartners, activated, active7d, paid, telegramOwners };
+  return { kakaoProfiles, kakaoPartners, onboarded, firstCycle, active7d, paid, telegramOwners };
 }
 
 module.exports = {
