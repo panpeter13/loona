@@ -203,8 +203,9 @@ function languageResponse(userOrLanguage) {
   if (COPY[currentLanguage]) buttons.push(COPY[currentLanguage].homeButton);
   return response(
     "🌙 LOONA는 생리 주기를 간편하게 기록하고 다음 주기를 예상하는 개인 캘린더예요.\n\n" +
-      "현재 무료 베타 테스트 중이며, 기록한 데이터는 언제든지 직접 삭제할 수 있어요. " +
-      "아래에서 언어를 선택하면 바로 시작할 수 있어요.\n\n" +
+      "시작일과 종료일을 기록하면 현재 주기와 다음 예상 기간을 한눈에 확인할 수 있어요. " +
+      "파트너는 Telegram에서도 연결할 수 있으며, 개인 메모 없이 주기 요약만 볼 수 있어요.\n\n" +
+      "기록한 데이터는 언제든지 직접 삭제할 수 있어요. 아래에서 언어를 선택하면 바로 시작할 수 있어요.\n\n" +
       "※ 예측은 참고용이며 의료 조언이나 피임 방법이 아닙니다.\n\n" +
       "🌐 언어를 선택해 주세요\nChoose your language · Выберите язык",
     buttons,

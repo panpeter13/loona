@@ -76,7 +76,8 @@ async function testSkillScenarios() {
     }),
   );
   assert.match(text(firstVisit), /생리 주기를 간편하게 기록/);
-  assert.match(text(firstVisit), /무료 베타 테스트/);
+  assert.match(text(firstVisit), /파트너는 Telegram에서도 연결/);
+  assert.match(text(firstVisit), /개인 메모 없이 주기 요약만/);
   assert.match(text(firstVisit), /언제든지 직접 삭제/);
   assert.match(text(firstVisit), /의료 조언이나 피임 방법이 아닙니다/);
   assert.match(text(firstVisit), /Choose your language/);
