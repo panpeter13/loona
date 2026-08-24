@@ -111,6 +111,67 @@ function response(text, quickReplies) {
   };
 }
 
+function welcomeResponse(text, quickReplies) {
+  const baseUrl = (process.env.PUBLIC_BASE_URL || "https://loona-production-468d.up.railway.app")
+    .replace(/\/$/, "");
+  const cards = [
+    {
+      title: "다음 생리, 언제쯤 시작할까요?",
+      description: "시작일과 종료일을 기록하면 다음 예상 기간을 한눈에 확인할 수 있어요.",
+      image: "loona-welcome-01.png",
+      buttons: [
+        ["한국어로 시작", "언어 한국어"],
+        ["Start in English", "Language English"],
+        ["Начать на русском", "Язык русский"],
+      ],
+    },
+    {
+      title: "날짜만 선택하면 기록 완료",
+      description: "복잡한 입력 없이 달력에서 시작일과 종료일을 간편하게 선택해요.",
+      image: "loona-welcome-02.png",
+    },
+    {
+      title: "내 주기를 한눈에",
+      description: "현재 상태와 다음 예상 기간을 편안하게 확인할 수 있어요.",
+      image: "loona-welcome-03.png",
+    },
+    {
+      title: "파트너는 Telegram에서도",
+      description: "개인 메모 없이 주기 요약만 안전하게 공유할 수 있어요.",
+      image: "loona-welcome-04.png",
+    },
+  ];
+
+  return {
+    version: "2.0",
+    template: {
+      outputs: [
+        { simpleText: { text } },
+        {
+          carousel: {
+            type: "basicCard",
+            items: cards.map((card) => ({
+              title: card.title,
+              description: card.description,
+              thumbnail: { imageUrl: `${baseUrl}/assets/${card.image}` },
+              buttons: (card.buttons || []).map(([label, messageText]) => ({
+                action: "message",
+                label,
+                messageText,
+              })),
+            })),
+          },
+        },
+      ],
+      quickReplies: quickReplies.map(([label, messageText]) => ({
+        action: "message",
+        label,
+        messageText,
+      })),
+    },
+  };
+}
+
 function localizedResponse(text, userOrLanguage, quickReplies) {
   const language = languageOf(userOrLanguage);
   const partnerQuick = typeof userOrLanguage === "object" && userOrLanguage?.mode === "partner"
@@ -201,7 +262,7 @@ function languageResponse(userOrLanguage) {
   ];
   const currentLanguage = typeof userOrLanguage === "object" ? userOrLanguage?.language : userOrLanguage;
   if (COPY[currentLanguage]) buttons.push(COPY[currentLanguage].homeButton);
-  return response(
+  return welcomeResponse(
     "🌙 LOONA는 생리 주기를 간편하게 기록하고 다음 주기를 예상하는 개인 캘린더예요.\n\n" +
       "시작일과 종료일을 기록하면 현재 주기와 다음 예상 기간을 한눈에 확인할 수 있어요. " +
       "파트너는 Telegram에서도 연결할 수 있으며, 개인 메모 없이 주기 요약만 볼 수 있어요.\n\n" +

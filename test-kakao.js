@@ -81,6 +81,15 @@ async function testSkillScenarios() {
   assert.match(text(firstVisit), /언제든지 직접 삭제/);
   assert.match(text(firstVisit), /의료 조언이나 피임 방법이 아닙니다/);
   assert.match(text(firstVisit), /Choose your language/);
+  const welcomeCarousel = firstVisit.template.outputs[1].carousel;
+  assert.equal(welcomeCarousel.type, "basicCard");
+  assert.equal(welcomeCarousel.items.length, 4);
+  assert.match(welcomeCarousel.items[0].thumbnail.imageUrl, /loona-welcome-01\.png$/);
+  assert.match(welcomeCarousel.items[3].thumbnail.imageUrl, /loona-welcome-04\.png$/);
+  assert.deepEqual(
+    welcomeCarousel.items[0].buttons.map((item) => item.messageText),
+    ["언어 한국어", "Language English", "Язык русский"],
+  );
   assert.deepEqual(
     firstVisit.template.quickReplies.map((item) => item.label),
     ["Русский · Начать", "English · Start", "한국어 · 시작하기"],
