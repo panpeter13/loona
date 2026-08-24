@@ -221,6 +221,8 @@ function command(utterance) {
     ["Согласие на обработку", "consent"], ["Health data consent", "consent"], ["민감정보 처리 동의", "consent"],
   ]);
   if (exact.has(utterance)) return { name: exact.get(utterance) };
+  if (/^(Сохранить начало|Save start|시작일 저장)(?:\s|$)/i.test(utterance)) return { name: "start", confirmed: true, pattern: /^(Сохранить начало|Save start|시작일 저장)/i };
+  if (/^(Сохранить окончание|Save finish|종료일 저장)(?:\s|$)/i.test(utterance)) return { name: "end", confirmed: true, pattern: /^(Сохранить окончание|Save finish|종료일 저장)/i };
   if (/^(Начать цикл|Указать дату начала|Start cycle|Choose start date|주기 시작|시작일 선택)(?:\s|$)/i.test(utterance)) return { name: "start", pattern: /^(Начать цикл|Указать дату начала|Start cycle|Choose start date|주기 시작|시작일 선택)/i };
   if (/^(Завершить|Указать дату окончания|Finish|Choose finish date|생리 종료|종료일 선택)(?:\s|$)/i.test(utterance)) return { name: "end", pattern: /^(Завершить|Указать дату окончания|Finish|Choose finish date|생리 종료|종료일 선택)/i };
   const partnerCode = utterance.match(/^(?:Код|Code|파트너 코드)\s+([A-Z0-9]{6})$/i);
@@ -343,7 +345,7 @@ async function handleKakaoSkill(body, dependencies = {}) {
     if (!requested.provided) {
       return dateSelectionResponse("start", user, requested.date, addDays);
     }
-    if (getActionParam(body, ["date", "sys_date"])) {
+    if (!action.confirmed && getActionParam(body, ["date", "sys_date"])) {
       return dateConfirmationResponse("start", requested.date, user);
     }
     const { error: createError, duplicate } = await deps.createCycle(user, requested.date);
@@ -367,7 +369,7 @@ async function handleKakaoSkill(body, dependencies = {}) {
       return dateSelectionResponse("end", user, requested.date, addDays);
     }
     if (requested.date < open.period_start) return localizedResponse(c.beforeStart(open.period_start), user);
-    if (getActionParam(body, ["date", "sys_date"])) {
+    if (!action.confirmed && getActionParam(body, ["date", "sys_date"])) {
       return dateConfirmationResponse("end", requested.date, user);
     }
     const { error: closeError } = await deps.closeCycle(open.id, requested.date);

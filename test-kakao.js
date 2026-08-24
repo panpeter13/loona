@@ -75,7 +75,15 @@ async function testSkillScenarios() {
       }),
     }),
   );
+  assert.match(text(firstVisit), /생리 주기를 간편하게 기록/);
+  assert.match(text(firstVisit), /무료 베타 테스트/);
+  assert.match(text(firstVisit), /언제든지 직접 삭제/);
+  assert.match(text(firstVisit), /의료 조언이나 피임 방법이 아닙니다/);
   assert.match(text(firstVisit), /Choose your language/);
+  assert.deepEqual(
+    firstVisit.template.quickReplies.map((item) => item.label),
+    ["Русский · Начать", "English · Start", "한국어 · 시작하기"],
+  );
   assert.deepEqual(
     firstVisit.template.quickReplies.map((item) => item.messageText),
     ["Язык русский", "Language English", "언어 한국어"],
@@ -142,8 +150,27 @@ async function testSkillScenarios() {
   assert.match(text(pluginConfirmation), /2026-07-18/);
   assert.deepEqual(
     pluginConfirmation.template.quickReplies.map((item) => item.messageText),
-    ["주기 시작 2026-07-18", "시작일 선택", "홈"],
+    ["시작일 저장 2026-07-18", "시작일 선택", "홈"],
   );
+
+  let confirmedEndDate;
+  const confirmedEnd = await handleKakaoSkill(
+    request("종료일 저장 2026-07-18", {
+      action: { params: { date: "2026-07-18" } },
+    }),
+    createDependencies({
+      getOpenCycle: async () => ({
+        data: { id: 7, period_start: "2026-07-15" },
+        error: null,
+      }),
+      closeCycle: async (_cycleId, date) => {
+        confirmedEndDate = date;
+        return { error: null };
+      },
+    }),
+  );
+  assert.equal(confirmedEndDate, "2026-07-18");
+  assert.match(text(confirmedEnd), /종료일을 기록했어요/);
 
   await handleKakaoSkill(
     request("주기 시작 2026-07-18"),

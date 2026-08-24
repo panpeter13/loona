@@ -165,17 +165,17 @@ function dateConfirmationResponse(action, date, userOrLanguage) {
   const content = {
     ru: {
       text: `${action === "start" ? "Дата начала цикла" : "Дата окончания"}: ${date}\n\nВсё верно?`,
-      yes: ["✅ Да, сохранить", `${action === "start" ? "Начать цикл" : "Завершить"} ${date}`],
+      yes: ["✅ Да, сохранить", `${action === "start" ? "Сохранить начало" : "Сохранить окончание"} ${date}`],
       no: ["↩️ Нет, выбрать другую", action === "start" ? "Указать дату начала" : "Указать дату окончания"],
     },
     en: {
       text: `${action === "start" ? "Cycle start date" : "Finish date"}: ${date}\n\nIs this correct?`,
-      yes: ["✅ Yes, save", `${action === "start" ? "Start cycle" : "Finish"} ${date}`],
+      yes: ["✅ Yes, save", `${action === "start" ? "Save start" : "Save finish"} ${date}`],
       no: ["↩️ No, choose another", action === "start" ? "Choose start date" : "Choose finish date"],
     },
     ko: {
       text: `${action === "start" ? "주기 시작일" : "생리 종료일"}: ${date}\n\n이 날짜가 맞나요?`,
-      yes: ["✅ 네, 저장", `${action === "start" ? "주기 시작" : "생리 종료"} ${date}`],
+      yes: ["✅ 네, 저장", `${action === "start" ? "시작일 저장" : "종료일 저장"} ${date}`],
       no: ["↩️ 아니요, 다시 선택", action === "start" ? "시작일 선택" : "종료일 선택"],
     },
   }[language];
@@ -195,13 +195,20 @@ function deleteConfirmationResponse(userOrLanguage) {
 
 function languageResponse(userOrLanguage) {
   const buttons = [
-    ["Русский", "Язык русский"],
-    ["English", "Language English"],
-    ["한국어", "언어 한국어"],
+    ["Русский · Начать", "Язык русский"],
+    ["English · Start", "Language English"],
+    ["한국어 · 시작하기", "언어 한국어"],
   ];
   const currentLanguage = typeof userOrLanguage === "object" ? userOrLanguage?.language : userOrLanguage;
   if (COPY[currentLanguage]) buttons.push(COPY[currentLanguage].homeButton);
-  return response("🌐 언어를 선택해 주세요\nChoose your language\nВыберите язык", buttons);
+  return response(
+    "🌙 LOONA는 생리 주기를 간편하게 기록하고 다음 주기를 예상하는 개인 캘린더예요.\n\n" +
+      "현재 무료 베타 테스트 중이며, 기록한 데이터는 언제든지 직접 삭제할 수 있어요. " +
+      "아래에서 언어를 선택하면 바로 시작할 수 있어요.\n\n" +
+      "※ 예측은 참고용이며 의료 조언이나 피임 방법이 아닙니다.\n\n" +
+      "🌐 언어를 선택해 주세요\nChoose your language · Выберите язык",
+    buttons,
+  );
 }
 
 function partnerModeResponse(userOrLanguage) {
