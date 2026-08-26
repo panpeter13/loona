@@ -260,6 +260,13 @@ async function handleKakaoSkill(body, dependencies = {}) {
   const lang = languageOf(user);
   const c = TEXT[lang];
 
+  // The Kakao list-menu entry is visible on every visit, including returning
+  // users whose chat history is otherwise empty. Re-open the full intro so
+  // they can understand the service and choose a language again.
+  if (/^(?:🌙\s*)?(?:LOONA\s+시작하기|Start\s+LOONA|Запустить\s+LOONA)$/i.test(utterance)) {
+    return languageResponse(user);
+  }
+
   const languageMatch = utterance.match(/^(?:Язык русский|Language English|언어 한국어)$/);
   if (languageMatch) {
     const language = utterance.includes("русский") ? "ru" : utterance.includes("English") ? "en" : "ko";

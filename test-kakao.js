@@ -99,6 +99,22 @@ async function testSkillScenarios() {
     ["Язык русский", "Language English", "언어 한국어"],
   );
 
+  const returningVisit = await handleKakaoSkill(
+    request("🌙 LOONA 시작하기"),
+    createDependencies({
+      getOrCreateKakaoUser: async () => ({
+        id: 42,
+        language: "ko",
+        timezone: "Asia/Seoul",
+        cycle_length: 28,
+        period_length: 5,
+        health_data_consent_at: "2026-08-20T00:00:00.000Z",
+      }),
+    }),
+  );
+  assert.match(text(returningVisit), /생리 주기를 간편하게 기록/);
+  assert.equal(returningVisit.template.outputs[1].carousel.items.length, 4);
+
   const withoutConsent = createDependencies({
     getOrCreateKakaoUser: async () => ({
       id: 42,
